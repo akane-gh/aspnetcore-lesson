@@ -37,4 +37,4 @@ const data = {
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(data, null, 2)}\n`);
 
-console.log(`${data.packageCount} 件のパッケージのライセンス情報を ${outputPath} に出力しました。`);
+console.log(`${data.packageCount} 件のパッケージのライセンス情報を ${outputPath} に出力しました`);
