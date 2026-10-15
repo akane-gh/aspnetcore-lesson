@@ -64,29 +64,73 @@ import Layout from '../layouts/Layout.astro';
         <li>
           <span class="lesson-number">01</span>
           <div>
-            <h3>ASP.NET Core とは</h3>
-            <p>Web 開発における ASP.NET Core の役割を知る</p>
+            <a class="lesson-link" href="/lessons/01-introduction">
+              <h3>はじめに</h3>
+            </a>
+            <p>この講座で作るものと、ASP.NET Core MVC を使う理由を知る</p>
           </div>
         </li>
         <li>
           <span class="lesson-number">02</span>
           <div>
             <h3>開発環境を整える</h3>
-            <p>.NET SDK とエディターを用意し、最初のプロジェクトを作る</p>
+            <p>.NET SDK とエディターを用意し、最初のログを出力する</p>
           </div>
         </li>
         <li>
           <span class="lesson-number">03</span>
           <div>
-            <h3>最初の Web API</h3>
-            <p>HTTP リクエストを受け取り、データを返す API を作る</p>
+            <h3>ASP.NET Core MVC の基本構成</h3>
+            <p>Model、View、Controller の役割と画面表示の流れを学ぶ</p>
           </div>
         </li>
         <li>
           <span class="lesson-number">04</span>
           <div>
-            <h3>データベースを扱う</h3>
-            <p>Entity Framework Core を使ってデータを保存・取得する</p>
+            <h3>ルーティングとコントローラー</h3>
+            <p>RESTful な URL と HTTP メソッドを使った画面遷移を理解する</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">05</span>
+          <div>
+            <h3>Razor とレイアウト</h3>
+            <p>Razor 構文と共通レイアウトを使って画面を組み立てる</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">06</span>
+          <div>
+            <h3>フォームと入力値の検証</h3>
+            <p>モデルバインディングと Tag Helper を使って入力を受け取る</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">07</span>
+          <div>
+            <h3>データベースと Entity Framework Core</h3>
+            <p>タスク管理アプリケーションの CRUD 画面を完成させる</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">08</span>
+          <div>
+            <h3>依存性注入と設定</h3>
+            <p>サービス登録、設定、ミドルウェアを理解する</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">09</span>
+          <div>
+            <h3>Cookie 認証とログイン</h3>
+            <p>ログイン、ログアウト、画面の保護を実装する</p>
+          </div>
+        </li>
+        <li>
+          <span class="lesson-number">10</span>
+          <div>
+            <h3>エラー処理、テスト、デプロイ</h3>
+            <p>公開前に必要な確認とアプリケーションの仕上げを行う</p>
           </div>
         </li>
       </ol>
@@ -323,6 +367,18 @@ import Layout from '../layouts/Layout.astro';
     margin-bottom: 6px;
     color: #500724;
     font-size: 1.16rem;
+  }
+
+  .lesson-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .lesson-link:hover h3 {
+    color: #be123c;
+    text-decoration: underline;
+    text-decoration-color: #fda4af;
+    text-underline-offset: 4px;
   }
 
   .lesson-list p {

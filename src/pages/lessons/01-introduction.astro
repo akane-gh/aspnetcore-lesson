@@ -1,0 +1,828 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['goal', 'この講座で目指すこと'],
+  ['aspnet-core', 'ASP.NET Core と .NET'],
+  ['web-app-types', 'MPA、SPA、Web API'],
+  ['mvc-razor', 'MVC と Razor'],
+  ['learning-flow', '学習の進め方'],
+];
+---
+
+<Layout
+  title="第1章 はじめに | ASP.NET Lesson"
+  description="ASP.NET Core MVC と Razor を使った MPA の基礎を学ぶ講座の導入です"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 01 <span>/ 10</span>
+        </p>
+        <h1>はじめに</h1>
+        <p class="lead">
+          この講座で作るものと、ASP.NET Core MVC を使った Web
+          アプリケーション開発の全体像を確認します
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>この講座で完成させるタスク管理アプリケーションの概要</li>
+            <li>.NET と ASP.NET Core の役割</li>
+            <li>MPA、SPA、Web API の違い</li>
+            <li>MVC と Razor の基本的な役割</li>
+          </ul>
+        </section>
+
+        <section id="goal">
+          <p class="section-label">GOAL</p>
+          <h2>この講座で目指すこと</h2>
+          <p>
+            この講座では、タスクを登録し、一覧で確認し、編集や削除ができるタスク管理アプリケーションを作ります。画面はサーバーで
+            HTML を生成して返す MPA として構成します
+          </p>
+          <p>
+            最終的には、データベースを使った
+            CRUD、入力値の検証、ログイン、エラー処理までを一つのアプリケーションへ加えていきます
+          </p>
+
+          <div class="goal-card">
+            <p class="goal-card__label">完成イメージ</p>
+            <ul>
+              <li>タスクの一覧、詳細、作成、編集、削除</li>
+              <li>ログインしたユーザーだけが使える画面</li>
+              <li>入力ミスを分かりやすく伝えるフォーム</li>
+              <li>問題を調べるためのログとエラー処理</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="aspnet-core">
+          <p class="section-label">FOUNDATION</p>
+          <h2>ASP.NET Core と .NET</h2>
+          <p>
+            <strong>.NET</strong> は C#
+            などを使ってアプリケーションを作り、実行するための開発プラットフォームです。
+            <strong>ASP.NET Core</strong> は .NET で Web アプリケーションや Web API を作るための Web
+            フレームワークです
+          </p>
+          <p>
+            ASP.NET Core には、ルーティング、設定、ログ、認証、依存性注入など、Web
+            アプリケーションに必要な仕組みが用意されています。この講座では、これらを画面の実装と結び付けながら学びます
+          </p>
+
+          <div class="term-grid">
+            <div>
+              <h3>.NET</h3>
+              <p>C# などを使ってアプリケーションを作り、実行するための開発プラットフォーム</p>
+            </div>
+            <div>
+              <h3>ASP.NET Core</h3>
+              <p>.NET で Web アプリケーションや Web API を作るための Web フレームワーク</p>
+            </div>
+          </div>
+
+          <figure class="stack-diagram" aria-labelledby="stack-diagram-caption">
+            <figcaption id="stack-diagram-caption">
+              講座で扱う Web アプリケーションの概念的なレイヤー
+            </figcaption>
+            <div class="stack-diagram__flow">
+              <div class="stack-diagram__browser">
+                <strong>ブラウザー</strong>
+                <small>利用者が操作する</small>
+              </div>
+              <div
+                class="stack-diagram__communication"
+                aria-label="HTTP のリクエストと HTML のレスポンス"
+              >
+                <span>HTTP リクエスト</span>
+                <b>→</b>
+                <b>←</b>
+                <span>HTML レスポンス</span>
+              </div>
+              <div class="stack-diagram__server-boundary">
+                <span class="stack-diagram__server-label">WEB SERVER</span>
+                <div class="stack-diagram__layer stack-diagram__layer--server">
+                  <strong>Web サーバー</strong>
+                  <p>ブラウザーからの通信を受け取る</p>
+                  <div class="stack-diagram__layer stack-diagram__layer--mvc">
+                    <span>WEB FRAMEWORK</span>
+                    <strong>ASP.NET Core MVC</strong>
+                    <p>リクエストを処理し、HTML を生成する</p>
+                    <div class="stack-diagram__layer stack-diagram__layer--dotnet">
+                      <span>DEVELOPMENT PLATFORM</span>
+                      <strong>.NET</strong>
+                      <p>C# のアプリケーションを実行する</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </figure>
+        </section>
+
+        <section id="web-app-types">
+          <p class="section-label">CHOICE</p>
+          <h2>MPA、SPA、Web API</h2>
+          <p>
+            Web
+            アプリケーションには複数の作り方があります。この講座で中心に扱うのは、画面遷移のたびにサーバーが
+            HTML を返す MPA です
+          </p>
+
+          <div class="comparison" role="list">
+            <div role="listitem">
+              <h3>MPA</h3>
+              <p class="comparison__subtitle">Multi Page Application</p>
+              <p>
+                画面遷移ごとにサーバーが HTML を生成して返す構成です。ASP.NET Core MVC と Razor
+                を使うこの講座はこの形式です
+              </p>
+            </div>
+            <div role="listitem">
+              <h3>SPA</h3>
+              <p class="comparison__subtitle">Single Page Application</p>
+              <p>
+                ブラウザー側の JavaScript が画面を動的に更新する構成です。React や Vue
+                などでよく使われます
+              </p>
+            </div>
+            <div role="listitem">
+              <h3>Web API</h3>
+              <p class="comparison__subtitle">Data for programs</p>
+              <p>HTML ではなく JSON などのデータを返す窓口です。この講座では概要の紹介に留めます</p>
+            </div>
+          </div>
+
+          <figure class="comparison-diagrams" aria-labelledby="comparison-diagrams-caption">
+            <figcaption id="comparison-diagrams-caption">それぞれの通信のイメージ</figcaption>
+            <div class="comparison-diagrams__grid">
+              <div class="mini-diagram" aria-label="MPA の通信図">
+                <strong>MPA</strong>
+                <div class="mini-diagram__flow">
+                  <span>
+                    ブラウザー
+                    <br />
+                    <small>HTML を要求</small>
+                  </span>
+                  <b>↔</b>
+                  <span>
+                    Web サーバー
+                    <br />
+                    MVC
+                    <br />
+                    <small>HTML を返す</small>
+                  </span>
+                </div>
+              </div>
+              <div class="mini-diagram" aria-label="SPA の通信図">
+                <strong>SPA</strong>
+                <div class="mini-diagram__flow">
+                  <span>
+                    ブラウザー
+                    <br />
+                    JavaScript
+                    <br />
+                    <small>リクエスト</small>
+                  </span>
+                  <b>↔</b>
+                  <span>
+                    Web API
+                    <br />
+                    <small>JSON を返す</small>
+                  </span>
+                </div>
+              </div>
+              <div class="mini-diagram" aria-label="Web API の利用図">
+                <strong>Web API</strong>
+                <div class="mini-diagram__flow">
+                  <span>
+                    アプリケーション
+                    <br />
+                    <small>リクエスト</small>
+                  </span>
+                  <b>↔</b>
+                  <span>
+                    Web API
+                    <br />
+                    <small>JSON を返す</small>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </figure>
+
+          <aside class="note">
+            <h3>この講座で MPA を選ぶ理由</h3>
+            <p>
+              HTTP、URL、フォーム、HTML の流れを一つのアプリケーションで追えるため、Web
+              開発の基礎をつかみやすくなります
+            </p>
+          </aside>
+        </section>
+
+        <section id="mvc-razor">
+          <p class="section-label">ARCHITECTURE</p>
+          <h2>MVC と Razor</h2>
+          <p>
+            この講座で扱う ASP.NET Core MVC は Web
+            サーバー上で動作し、ブラウザーからのリクエストをサーバーで処理して、Razor で生成した
+            HTML をブラウザーへ返します
+          </p>
+          <p>
+            MVC は、アプリケーションの役割を Model、View、Controller
+            に分ける考え方です。役割を分けることで、画面の表示とアプリケーションの処理を整理しやすくなります
+          </p>
+
+          <figure class="mvc-diagram" aria-labelledby="mvc-diagram-caption">
+            <figcaption id="mvc-diagram-caption">
+              ブラウザーから HTML が返るまでの MVC の関係
+            </figcaption>
+            <div class="mvc-diagram__scroll">
+              <div class="mvc-diagram__canvas">
+                <svg viewBox="0 0 760 410" aria-hidden="true">
+                  <defs>
+                    <marker
+                      id="arrowhead"
+                      markerWidth="8"
+                      markerHeight="8"
+                      refX="6"
+                      refY="4"
+                      orient="auto"
+                    >
+                      <path d="M 0 0 L 8 4 L 0 8 z" />
+                    </marker>
+                  </defs>
+                  <path
+                    class="mvc-diagram__line"
+                    d="M 155 170 H 286"
+                    marker-end="url(#arrowhead)"
+                  />
+                  <path
+                    class="mvc-diagram__line"
+                    d="M 425 112 H 544"
+                    marker-start="url(#arrowhead)"
+                    marker-end="url(#arrowhead)"
+                  />
+                  <path
+                    class="mvc-diagram__line"
+                    d="M 356 162 V 270"
+                    marker-end="url(#arrowhead)"
+                  />
+                  <path
+                    class="mvc-diagram__line"
+                    d="M 286 322 H 155"
+                    marker-end="url(#arrowhead)"
+                  />
+                </svg>
+                <div class="mvc-diagram__server-label">WEB SERVER</div>
+                <div class="mvc-diagram__node mvc-diagram__node--browser">ブラウザー</div>
+                <div class="mvc-diagram__node mvc-diagram__node--controller">Controller</div>
+                <div class="mvc-diagram__node mvc-diagram__node--model">Model</div>
+                <div class="mvc-diagram__node mvc-diagram__node--view">
+                  View
+                  <br />
+                  <small>Razor</small>
+                </div>
+                <span class="mvc-diagram__label mvc-diagram__label--request">リクエスト</span>
+                <span class="mvc-diagram__label mvc-diagram__label--model">データの取得・更新</span>
+                <span class="mvc-diagram__label mvc-diagram__label--view">画面を選ぶ</span>
+                <span class="mvc-diagram__label mvc-diagram__label--html">HTML</span>
+              </div>
+            </div>
+          </figure>
+
+          <dl class="roles">
+            <div>
+              <dt>Model</dt>
+              <dd>タスクなどのデータと、アプリケーションのルールを表す</dd>
+            </div>
+            <div>
+              <dt>View</dt>
+              <dd>利用者へ見せる HTML を生成する</dd>
+            </div>
+            <div>
+              <dt>Controller</dt>
+              <dd>リクエストを受け取り、必要な処理と画面表示をつなぐ</dd>
+            </div>
+          </dl>
+
+          <p>
+            <strong>Razor</strong> は HTML の中へ C# の値や制御構文を書けるテンプレート構文です。MVC
+            の View では、通常 <code>.cshtml</code> ファイルに Razor を使って画面を記述します
+          </p>
+        </section>
+
+        <section id="learning-flow">
+          <p class="section-label">NEXT STEP</p>
+          <h2>学習の進め方</h2>
+          <p>
+            各章では、説明を読んだあとに小さな変更を加え、実際にブラウザーで確認します。分からない動作があれば、次章で導入するロガーやデバッガーを使って確かめる習慣を作りましょう
+          </p>
+          <ol class="steps">
+            <li>
+              <span>01</span> 章の目的と完成イメージを確認する
+            </li>
+            <li>
+              <span>02</span> コードを入力し、アプリケーションを起動する
+            </li>
+            <li>
+              <span>03</span> ブラウザーとログから動作を確かめる
+            </li>
+            <li>
+              <span>04</span> 自分なりの小さな変更を加えて理解を深める
+            </li>
+          </ol>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>次章では .NET SDK とエディターを準備し、ASP.NET Core MVC プロジェクトを作成します</p>
+          <span>CHAPTER 02 — 開発環境を整える</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/aspnet/core/overview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core の概要
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/aspnet/core/mvc/overview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC の概要
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .goal-card {
+    margin-top: 32px;
+    padding: 28px;
+    border-left: 4px solid #e11d48;
+    background: #fff1f2;
+  }
+
+  .goal-card__label {
+    margin-bottom: 14px;
+    color: #9f1239;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  .goal-card ul {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #59424a;
+    line-height: 1.7;
+  }
+
+  .term-grid,
+  .comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 30px;
+  }
+
+  .term-grid div,
+  .comparison > div {
+    padding: 24px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .term-grid h3,
+  .comparison h3 {
+    margin-bottom: 8px;
+    color: #881337;
+    font-size: 1rem;
+  }
+
+  .term-grid p,
+  .comparison p {
+    margin-bottom: 0;
+    color: #70565e;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .stack-diagram,
+  .mvc-diagram {
+    margin: 32px 0 0;
+  }
+
+  .stack-diagram figcaption,
+  .mvc-diagram figcaption {
+    margin-bottom: 12px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .stack-diagram__flow {
+    display: grid;
+    grid-template-columns: 150px 132px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+  }
+
+  .stack-diagram__browser {
+    display: grid;
+    min-height: 130px;
+    place-content: center;
+    padding: 18px;
+    border: 1px solid #fecdd3;
+    background: #fff;
+    color: #881337;
+    text-align: center;
+  }
+
+  .stack-diagram__browser strong {
+    font-size: 0.95rem;
+  }
+
+  .stack-diagram__browser small {
+    margin-top: 6px;
+    color: #9f1239;
+    font-size: 0.7rem;
+  }
+
+  .stack-diagram__communication {
+    display: grid;
+    grid-template-columns: 1fr 20px;
+    gap: 6px 8px;
+    align-items: center;
+    color: #9f1239;
+    font-size: 0.65rem;
+    text-align: center;
+  }
+
+  .stack-diagram__communication b {
+    color: #e11d48;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .stack-diagram__communication span:first-child {
+    grid-row: 1;
+  }
+
+  .stack-diagram__communication b:nth-of-type(1) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .stack-diagram__communication span:last-child {
+    grid-row: 2;
+  }
+
+  .stack-diagram__communication b:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .stack-diagram__server-boundary {
+    position: relative;
+    padding: 28px 18px 18px;
+    border: 1px dashed #fda4af;
+  }
+
+  .stack-diagram__server-label {
+    position: absolute;
+    top: 9px;
+    left: 18px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  .stack-diagram__layer {
+    padding: 18px;
+    border: 1px solid #fecdd3;
+  }
+
+  .stack-diagram__layer > span {
+    display: block;
+    margin-bottom: 6px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .stack-diagram__layer > strong {
+    display: block;
+    color: #500724;
+    font-size: 1.1rem;
+  }
+
+  .stack-diagram__layer > p {
+    margin: 6px 0 0;
+    color: #70565e;
+    font-size: 0.88rem;
+  }
+
+  .stack-diagram__layer--server {
+    background: #fff1f2;
+  }
+
+  .stack-diagram__layer--mvc {
+    margin: 18px 0 0 5%;
+    background: #fff8f8;
+  }
+
+  .stack-diagram__layer--dotnet {
+    margin: 18px 0 0 5%;
+    border-color: #f0d8dc;
+    background: #fff;
+  }
+
+  .comparison {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .comparison__subtitle {
+    margin-bottom: 14px !important;
+    color: #be123c !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem !important;
+  }
+
+  .comparison-diagrams {
+    margin: 22px 0 0;
+  }
+
+  .comparison-diagrams figcaption {
+    margin-bottom: 12px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .comparison-diagrams__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .mini-diagram {
+    padding: 18px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .mini-diagram > strong {
+    display: block;
+    margin-bottom: 12px;
+    color: #881337;
+    font-size: 0.88rem;
+  }
+
+  .mini-diagram__flow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0;
+    color: #881337;
+    text-align: center;
+  }
+
+  .mini-diagram__flow span {
+    min-height: 66px;
+    display: grid;
+    place-content: center;
+    padding: 8px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  .mini-diagram__flow small {
+    color: #9f1239;
+    font-size: 0.63rem;
+    font-weight: 650;
+  }
+
+  .mini-diagram__flow b {
+    color: #e11d48;
+    font-size: 1.1rem;
+  }
+
+  .mvc-diagram__scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .mvc-diagram__canvas {
+    position: relative;
+    min-width: 720px;
+    height: 410px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .mvc-diagram__canvas::before {
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    bottom: 28px;
+    left: 190px;
+    border: 1px dashed #fda4af;
+    content: '';
+  }
+
+  .mvc-diagram svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .mvc-diagram__line {
+    fill: none;
+    stroke: #e11d48;
+    stroke-width: 2;
+  }
+
+  .mvc-diagram marker path {
+    fill: #e11d48;
+  }
+
+  .mvc-diagram__server-label {
+    position: absolute;
+    top: 39px;
+    left: 210px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  .mvc-diagram__node {
+    position: absolute;
+    display: grid;
+    min-width: 116px;
+    min-height: 56px;
+    place-content: center;
+    padding: 9px 14px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #881337;
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .mvc-diagram__node small {
+    color: #9f1239;
+    font-size: 0.68rem;
+    font-weight: 650;
+  }
+
+  .mvc-diagram__node--browser {
+    top: 28px;
+    left: 28px;
+    min-height: 354px;
+  }
+
+  .mvc-diagram__node--controller {
+    top: 82px;
+    left: 288px;
+  }
+
+  .mvc-diagram__node--model {
+    top: 82px;
+    left: 546px;
+  }
+
+  .mvc-diagram__node--view {
+    top: 282px;
+    left: 288px;
+  }
+
+  .mvc-diagram__label {
+    position: absolute;
+    padding: 2px 5px;
+    background: #fff;
+    color: #9f1239;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .mvc-diagram__label--request {
+    top: 145px;
+    left: 188px;
+  }
+
+  .mvc-diagram__label--model {
+    top: 54px;
+    left: 432px;
+  }
+
+  .mvc-diagram__label--view {
+    top: 207px;
+    left: 375px;
+  }
+
+  .mvc-diagram__label--html {
+    top: 296px;
+    left: 195px;
+  }
+
+  .roles {
+    display: grid;
+    gap: 0;
+    margin: 0 0 28px;
+  }
+
+  .roles div {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.3fr) 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid #f0d8dc;
+  }
+
+  .roles div:last-child {
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  dt {
+    color: #881337;
+    font-weight: 800;
+  }
+
+  dd {
+    margin: 0;
+    color: #70565e;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 620px) {
+    .term-grid,
+    .comparison,
+    .comparison-diagrams__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stack-diagram__flow {
+      grid-template-columns: 1fr;
+    }
+
+    .stack-diagram__communication {
+      width: min(100%, 240px);
+      margin-inline: auto;
+    }
+
+    .roles div {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+</style>
