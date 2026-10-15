@@ -25,6 +25,7 @@ import licenseData from '../data/licenses.json';
           に固定された依存関係をもとに生成しており、現在の一覧には
           {licenseData.packageCount} 件のパッケージが含まれます
         </p>
+        <p class="notice">開発・ビルド時の依存を含む一覧です</p>
       </header>
 
       <div class="license-list">
@@ -127,11 +128,23 @@ import licenseData from '../data/licenses.json';
     color: #be123c;
   }
 
-  .page-header > p:last-child {
+  .page-header > p:not(.notice) {
     max-width: 42rem;
     margin-bottom: 0;
     color: #70565e;
     line-height: 1.9;
+  }
+
+  .notice {
+    display: inline-block;
+    margin: 18px 0 0;
+    padding: 7px 10px;
+    border: 1px solid #fecdd3;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #9f1239;
+    font-size: 0.78rem;
+    font-weight: 700;
   }
 
   code {
