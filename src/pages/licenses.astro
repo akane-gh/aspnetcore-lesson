@@ -1,0 +1,234 @@
+---
+import Layout from '../layouts/Layout.astro';
+import licenseData from '../data/licenses.json';
+---
+
+<Layout
+  title="使用パッケージのライセンス | ASP.NET Lesson"
+  description="ASP.NET Lesson で使用しているパッケージのライセンス一覧です。"
+>
+  <main class="page">
+    <div class="page__inner">
+      <a class="back-link" href="/">
+        ← トップページへ戻る
+      </a>
+
+      <header class="page-header">
+        <p class="eyebrow">OPEN SOURCE LICENSES</p>
+        <h1>
+          使用パッケージの
+          <br />
+          <span>ライセンス</span>
+        </h1>
+        <p>
+          このページは <code>bun.lock</code>{' '}
+          に固定された依存関係をもとに生成しています。現在の一覧には
+          {licenseData.packageCount} 件のパッケージが含まれます。
+        </p>
+      </header>
+
+      <div class="license-list">
+        {licenseData.licenses.map(({ license, packages }) => (
+          <section class="license-group" aria-labelledby={`license-${license}`}>
+            <header class="license-group__header">
+              <h2 id={`license-${license}`}>{license}</h2>
+              <p>{packages.length} packages</p>
+            </header>
+            <ul>
+              {packages.map(({ name, versions, author, description, homepage }) => (
+                <li>
+                  <div class="package-title">
+                    {homepage ? (
+                      <a href={homepage} target="_blank" rel="noreferrer">
+                        {name}
+                      </a>
+                    ) : (
+                      <span>{name}</span>
+                    )}
+                    <span class="version">v{versions.join(', v')}</span>
+                  </div>
+                  {description && <p>{description}</p>}
+                  {author && <small>{author}</small>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(body) {
+    background: #fff8f8;
+    color: #34111c;
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
+  }
+
+  .page {
+    padding: 32px 24px 96px;
+  }
+
+  .page__inner {
+    width: min(100%, 1040px);
+    margin-inline: auto;
+  }
+
+  .back-link {
+    color: #9f1239;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .page-header {
+    margin: clamp(58px, 9vw, 100px) 0 clamp(56px, 8vw, 92px);
+  }
+
+  .eyebrow {
+    margin: 0 0 18px;
+    color: #be123c;
+    font-size: 0.73rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+  }
+
+  h1,
+  h2,
+  p {
+    margin-top: 0;
+  }
+
+  h1 {
+    margin-bottom: 24px;
+    font-size: clamp(2.8rem, 7vw, 5.8rem);
+    letter-spacing: -0.07em;
+    line-height: 0.94;
+  }
+
+  h1 span {
+    color: #be123c;
+  }
+
+  .page-header > p:last-child {
+    max-width: 42rem;
+    margin-bottom: 0;
+    color: #70565e;
+    line-height: 1.9;
+  }
+
+  code {
+    padding: 0.12em 0.36em;
+    border-radius: 4px;
+    background: #fce7f3;
+    color: #9f1239;
+    font-size: 0.9em;
+  }
+
+  .license-list {
+    border-top: 1px solid #f0d8dc;
+  }
+
+  .license-group {
+    padding: 30px 0 12px;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .license-group__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    color: #500724;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+  }
+
+  .license-group__header p {
+    margin-bottom: 0;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding: 17px 0;
+    border-top: 1px solid #f8e6e8;
+  }
+
+  .package-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    font-weight: 750;
+  }
+
+  .package-title a {
+    color: #881337;
+    text-decoration-color: #fda4af;
+    text-underline-offset: 3px;
+  }
+
+  .version {
+    color: #a17a84;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  li p,
+  small {
+    display: block;
+    margin: 6px 0 0;
+    color: #70565e;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  small {
+    color: #98727c;
+  }
+
+  @media (max-width: 560px) {
+    .page {
+      padding-inline: 20px;
+    }
+
+    .license-group__header {
+      display: block;
+    }
+
+    .license-group__header p {
+      margin-top: 8px;
+    }
+  }
+</style>
