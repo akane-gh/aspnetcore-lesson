@@ -1,7 +1,11 @@
 {
   "name": "astro",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "author": "akane-gh",
+  "license": "MIT",
+  "repository": "https://github.com/akane-gh/aspnetcore-lesson.git",
+  "description": "ASP.NET Lesson Pages",
   "engines": {
     "node": ">=22.22.0"
   },
