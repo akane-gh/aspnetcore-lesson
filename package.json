@@ -11,16 +11,23 @@
     "preview": "astro preview",
     "check": "astro check",
     "astro": "astro",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "check:all": "bun run lint && bun run format && bun run check"
   },
   "dependencies": {
     "astro": "^7.4.0"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-astro": "3.2.1",
     "prettier": "3.9.10",
     "prettier-plugin-astro": "1.1.1",
-    "typescript": "6"
+    "typescript": "6",
+    "typescript-eslint": "8.71.2"
   }
 }
