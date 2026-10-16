@@ -1,0 +1,710 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['di', 'DI コンテナーとサービス登録'],
+  ['service', 'アプリケーションサービスを作る'],
+  ['configuration', 'appsettings.json と環境変数'],
+  ['middleware', 'ミドルウェアと要求パイプライン'],
+];
+
+const serviceRegistration = `// Program.cs
+using TodoManager.Data;
+using TodoManager.Services;
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<AppDbContext>(/* 第7章で追加 */);
+builder.Services.AddScoped<ITodoService, TodoService>(); // TodoService は次節`;
+
+const todoService = `using Microsoft.EntityFrameworkCore;
+using TodoManager.Data;
+using TodoManager.Models;
+
+namespace TodoManager.Services;
+
+public interface ITodoService
+{
+    Task<List<Todo>> GetIncompleteAsync();
+}
+
+public class TodoService(AppDbContext db, ILogger<TodoService> logger)
+    : ITodoService
+{
+    public async Task<List<Todo>> GetIncompleteAsync()
+    {
+        logger.LogInformation("未完了の TODO を取得します");
+
+        return await db.Todos
+            .Where(todo => !todo.IsCompleted)
+            .OrderByDescending(todo => todo.CreatedAt)
+            .ToListAsync();
+    }
+}`;
+
+const controllerInjection = `using TodoManager.Services;
+
+namespace TodoManager.Controllers;
+
+public class TodosController(ITodoService todoService) : Controller
+{
+    [HttpGet("todos")]
+    public async Task<IActionResult> Index()
+    {
+        var todos = await todoService.GetIncompleteAsync();
+        return View(todos);
+    }
+}`;
+
+const appSettings = `{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=todomanager.db"
+  },
+  "TodoManager": {
+    "ListPageSize": 20
+  }
+}`;
+
+const developmentSettings = `{
+  "TodoManager": {
+    "ListPageSize": 5
+  }
+}`;
+
+const configurationRead = `// Program.cs
+var pageSize = builder.Configuration.GetValue<int>(
+    "TodoManager:ListPageSize");
+
+// 環境変数の場合は : を __ で表せる
+// TodoManager__ListPageSize=50`;
+
+const pipeline = `if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+// 第9章で認証を追加する場所
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Todos}/{action=Index}/{id?}");`;
+---
+
+<Layout
+  title="第8章 依存性注入と設定 | ASP.NET Lesson"
+  description="ASP.NET Core MVC の DI コンテナー、アプリケーション設定、ミドルウェアによる要求処理の流れを学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 08 <span>/ 10</span>
+        </p>
+        <h1>
+          依存性注入と
+          <br />
+          設定
+        </h1>
+        <p class="lead">
+          <code>Program.cs</code> を読み解き、部品を組み合わせて ASP.NET Core
+          アプリケーションを構成します
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>DI コンテナーへサービスを登録し、Controller で受け取る方法</li>
+            <li>処理をアプリケーションサービスへ切り出す理由</li>
+            <li>
+              <code>appsettings.json</code> と環境変数で設定を切り替える考え方
+            </li>
+            <li>ミドルウェアが HTTP 要求を処理する順序</li>
+          </ul>
+        </section>
+
+        <section id="di">
+          <p class="section-label">DEPENDENCY INJECTION</p>
+          <h2>DI コンテナーとサービス登録</h2>
+          <p>
+            依存性注入、DI は、クラスが必要とする部品を自分で <code>new</code>{' '}
+            する代わりに、外部から渡してもらう考え方です。ASP.NET Core には DI
+            コンテナーが組み込まれており、登録した部品を Controller などへ自動で渡せます
+          </p>
+
+          <figure class="di-flow" aria-labelledby="di-flow-caption">
+            <figcaption id="di-flow-caption">サービスを登録して Controller へ渡す流れ</figcaption>
+            <div class="di-flow__program">
+              <strong>Program.cs</strong>
+              <span>サービスを登録</span>
+              <code>AddScoped</code>
+            </div>
+            <div class="di-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="di-flow__container">
+              <strong>DI コンテナー</strong>
+              <span>必要な部品を生成し管理する</span>
+            </div>
+            <div class="di-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="di-flow__controller">
+              <strong>TodosController</strong>
+              <span>コンストラクターで受け取る</span>
+              <code>ITodoService</code>
+            </div>
+          </figure>
+
+          <p>
+            第2章で Controller が受け取った <code>ILogger&lt;TodosController&gt;</code> や、第7章の{' '}
+            <code>AppDbContext</code> も DI
+            コンテナーから渡されるサービスです。自分で作るサービスも同じ方法で登録します
+          </p>
+
+          <div class="code-block">
+            <Code code={serviceRegistration} lang="csharp" theme="github-dark" />
+          </div>
+
+          <dl class="lifetime-table">
+            <div>
+              <dt>
+                <code>AddScoped</code>
+              </dt>
+              <dd>
+                HTTP 要求ごとに1つ生成します。<code>DbContext</code> や今回のサービスに適しています
+              </dd>
+            </div>
+            <div>
+              <dt>
+                <code>AddTransient</code>
+              </dt>
+              <dd>要求されるたびに生成します。状態を持たない小さな部品に向きます</dd>
+            </div>
+            <div>
+              <dt>
+                <code>AddSingleton</code>
+              </dt>
+              <dd>アプリケーション全体で1つを共有します。要求ごとのデータは持たせません</dd>
+            </div>
+          </dl>
+
+          <aside class="note">
+            <h3>最初は Scoped を基準に考える</h3>
+            <p>
+              データベースへアクセスするサービスは <code>DbContext</code>{' '}
+              と同じ要求の範囲で扱う必要があります。この講座の <code>TodoService</code> は{' '}
+              <code>AddScoped</code> で登録します
+            </p>
+          </aside>
+        </section>
+
+        <section id="service">
+          <p class="section-label">APPLICATION SERVICE</p>
+          <h2>アプリケーションサービスを作る</h2>
+          <p>
+            Controller は HTTP
+            の要求と応答を担当し、データの取得やアプリケーション固有の処理はサービスへ任せます。こうすると
+            Controller が大きくなりすぎず、処理の単位も分かりやすくなります
+          </p>
+
+          <div class="service-boundaries" aria-label="Controller とアプリケーションサービスの責務">
+            <div>
+              <strong>TodosController</strong>
+              <span>URL と HTTP メソッドを受け取る</span>
+              <span>View またはリダイレクトを返す</span>
+            </div>
+            <div class="service-boundaries__arrow" aria-hidden="true">
+              依頼 →
+            </div>
+            <div>
+              <strong>TodoService</strong>
+              <span>TODO を取得する条件を決める</span>
+              <span>DbContext と Logger を使う</span>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <Code code={todoService} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>TodoService</code> は <code>AppDbContext</code> と{' '}
+            <code>ILogger&lt;TodoService&gt;</code> をコンストラクターで宣言しています。DI
+            コンテナーが両方を解決し、<code>TodoService</code> を作るときに渡します
+          </p>
+
+          <div class="code-block">
+            <Code code={controllerInjection} lang="csharp" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>すべてをサービスへ移す必要はない</h3>
+            <p>
+              単純な画面表示まで無理にサービスへ分ける必要はありません。複数の Action
+              で使う処理や、HTTP とは独立して説明できる処理から切り出すと判断しやすくなります
+            </p>
+          </aside>
+        </section>
+
+        <section id="configuration">
+          <p class="section-label">CONFIGURATION</p>
+          <h2>
+            <code>appsettings.json</code> と環境変数
+          </h2>
+          <p>
+            設定値をコードへ直接書くと、開発環境と本番環境で値を変えにくくなります。ASP.NET Core
+            では <code>appsettings.json</code>、環境ごとの JSON
+            ファイル、環境変数などを順番に読み込みます。後から読み込んだ値が同じキーの前の値を上書きします
+          </p>
+
+          <figure class="configuration-flow" aria-labelledby="configuration-flow-caption">
+            <figcaption id="configuration-flow-caption">
+              構成プロバイダーと設定値の優先順位
+            </figcaption>
+            <div>
+              <code>appsettings.json</code>
+              <span>共通の既定値</span>
+            </div>
+            <span aria-hidden="true">→</span>
+            <div>
+              <code>appsettings.Development.json</code>
+              <span>開発時だけの上書き</span>
+            </div>
+            <span aria-hidden="true">→</span>
+            <div>
+              <code>環境変数</code>
+              <span>デプロイ先での上書き</span>
+            </div>
+            <span aria-hidden="true">→</span>
+            <div>
+              <code>IConfiguration</code>
+              <span>アプリケーションが読む値</span>
+            </div>
+          </figure>
+
+          <div class="settings-grid">
+            <div>
+              <h3>appsettings.json</h3>
+              <div class="code-block">
+                <Code code={appSettings} lang="json" theme="github-dark" />
+              </div>
+            </div>
+            <div>
+              <h3>appsettings.Development.json</h3>
+              <div class="code-block">
+                <Code code={developmentSettings} lang="json" theme="github-dark" />
+              </div>
+            </div>
+          </div>
+
+          <p>
+            JSON の入れ子は、<code>TodoManager:ListPageSize</code> のように <code>:</code>{' '}
+            で区切ったキーとして読み取れます。環境変数では <code>:</code> を <code>__</code>{' '}
+            に置き換えます。たとえば <code>TodoManager__ListPageSize=50</code>{' '}
+            を設定すると、デプロイ先で一覧件数だけを変更できます
+          </p>
+
+          <div class="code-block">
+            <Code code={configurationRead} lang="csharp" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>秘密情報はリポジトリへ入れない</h3>
+            <p>
+              接続先のパスワードや API キーは、公開する <code>appsettings.json</code>{' '}
+              へ書きません。開発時は User
+              Secrets、本番ではホスティング環境の環境変数やシークレット管理機能を使います
+            </p>
+          </aside>
+        </section>
+
+        <section id="middleware">
+          <p class="section-label">MIDDLEWARE</p>
+          <h2>ミドルウェアと要求パイプライン</h2>
+          <p>
+            ミドルウェアは、HTTP
+            要求と応答を順番に処理する部品です。各部品は次の部品へ処理を渡すことも、そこで応答を返して処理を終えることもできます。
+            <code>Program.cs</code> に書く順序が動作に影響します
+          </p>
+
+          <figure class="pipeline-flow" aria-labelledby="pipeline-flow-caption">
+            <figcaption id="pipeline-flow-caption">
+              TODO 一覧への要求を処理するパイプライン
+            </figcaption>
+            <div class="pipeline-flow__browser">
+              ブラウザー
+              <br />
+              <code>GET /todos</code>
+            </div>
+            <div class="pipeline-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="pipeline-flow__steps">
+              <span>例外処理</span>
+              <span>HTTPS へ転送</span>
+              <span>静的ファイル</span>
+              <span>ルーティング</span>
+              <span>認可</span>
+            </div>
+            <div class="pipeline-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="pipeline-flow__endpoint">
+              TodosController
+              <br />
+              <code>Index</code>
+            </div>
+          </figure>
+
+          <div class="code-block">
+            <Code code={pipeline} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            静的ファイルの要求は <code>UseStaticFiles</code> が処理して、その後の Controller
+            まで進まない場合があります。一方、<code>UseAuthentication</code> と{' '}
+            <code>UseAuthorization</code>{' '}
+            は順序が重要で、認証を先に実行してから認可を判断します。Cookie
+            認証は次章でこの位置へ追加します
+          </p>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では、ここで見た DI とミドルウェアを使い、Cookie 認証を登録してログインが必要な TODO
+            画面を作ります
+          </p>
+          <span>CHAPTER 09 — Cookie 認証とログイン</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/fundamentals/dependency-injection"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core での依存関係の挿入
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/fundamentals/configuration/?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core の構成
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core ミドルウェア
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .di-flow,
+  .configuration-flow,
+  .pipeline-flow,
+  .service-boundaries {
+    display: grid;
+    gap: 14px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .di-flow {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr) auto minmax(0, 1fr);
+  }
+
+  .di-flow figcaption,
+  .configuration-flow figcaption,
+  .pipeline-flow figcaption {
+    grid-column: 1 / -1;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .di-flow > div:not(.di-flow__arrow),
+  .service-boundaries > div:not(.service-boundaries__arrow) {
+    display: grid;
+    gap: 8px;
+    min-height: 128px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .di-flow__program,
+  .service-boundaries > div:first-child {
+    background: #fff8f8;
+  }
+
+  .di-flow__container,
+  .service-boundaries > div:last-child {
+    background: #fff1f2;
+  }
+
+  .di-flow__controller {
+    background: #ffe4e6;
+  }
+
+  .di-flow strong,
+  .service-boundaries strong {
+    font-size: 0.92rem;
+  }
+
+  .di-flow span,
+  .service-boundaries span {
+    color: #70565e;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .di-flow__arrow,
+  .service-boundaries__arrow,
+  .pipeline-flow__arrow {
+    color: #e11d48;
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+
+  .lifetime-table {
+    display: grid;
+    margin: 30px 0;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .lifetime-table div {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.7fr) minmax(0, 2fr);
+    gap: 20px;
+    padding: 15px 18px;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .lifetime-table div:last-child {
+    border-bottom: 0;
+  }
+
+  .lifetime-table dt,
+  .lifetime-table dd {
+    margin: 0;
+  }
+
+  .lifetime-table dd {
+    color: #70565e;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .service-boundaries {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .configuration-flow {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(
+        0,
+        1fr
+      );
+  }
+
+  .configuration-flow > div {
+    display: grid;
+    gap: 9px;
+    min-height: 106px;
+    place-content: center;
+    padding: 14px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    text-align: center;
+  }
+
+  .configuration-flow > div:nth-of-type(2) {
+    background: #fff1f2;
+  }
+
+  .configuration-flow > div:nth-of-type(3) {
+    background: #ffe4e6;
+  }
+
+  .configuration-flow span {
+    color: #70565e;
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+  .configuration-flow > span {
+    color: #e11d48;
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 30px 0;
+  }
+
+  .settings-grid > div {
+    padding: 20px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .settings-grid h3 {
+    margin-bottom: 14px;
+    color: #881337;
+    font-size: 0.94rem;
+  }
+
+  .settings-grid .code-block {
+    margin: 0;
+  }
+
+  .settings-grid .code-block pre {
+    padding: 17px;
+    font-size: 0.75rem;
+  }
+
+  .pipeline-flow {
+    grid-template-columns: minmax(110px, 0.8fr) auto minmax(0, 1.4fr) auto minmax(120px, 0.8fr);
+  }
+
+  .pipeline-flow__browser,
+  .pipeline-flow__endpoint {
+    display: grid;
+    min-height: 118px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #881337;
+    text-align: center;
+    font-weight: 800;
+    line-height: 1.7;
+  }
+
+  .pipeline-flow__endpoint {
+    background: #ffe4e6;
+  }
+
+  .pipeline-flow__steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border: 1px solid #fecdd3;
+  }
+
+  .pipeline-flow__steps span {
+    display: grid;
+    min-height: 118px;
+    place-items: center;
+    padding: 9px;
+    border-right: 1px solid #fecdd3;
+    background: #fff1f2;
+    color: #881337;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-align: center;
+    writing-mode: vertical-rl;
+  }
+
+  .pipeline-flow__steps span:last-child {
+    border-right: 0;
+  }
+
+  @media (max-width: 820px) {
+    .di-flow,
+    .configuration-flow,
+    .pipeline-flow,
+    .service-boundaries {
+      grid-template-columns: 1fr;
+    }
+
+    .di-flow__arrow,
+    .service-boundaries__arrow,
+    .configuration-flow > span,
+    .pipeline-flow__arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
+    .pipeline-flow__steps span {
+      min-height: 70px;
+      writing-mode: initial;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .lifetime-table div,
+    .settings-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .settings-grid {
+      gap: 14px;
+    }
+
+    .pipeline-flow__steps {
+      grid-template-columns: 1fr;
+    }
+
+    .pipeline-flow__steps span {
+      min-height: auto;
+      padding: 13px;
+      border-right: 0;
+      border-bottom: 1px solid #fecdd3;
+    }
+
+    .pipeline-flow__steps span:last-child {
+      border-bottom: 0;
+    }
+  }
+</style>
