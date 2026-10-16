@@ -1,0 +1,704 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['routing', 'ルーティングとは'],
+  ['conventional', '従来のルーティング'],
+  ['attribute', '属性ルーティング'],
+  ['http-methods', 'GET と POST'],
+  ['restful', 'RESTful な URL を考える'],
+];
+
+const conventionalRoute = `app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");`;
+
+const tasksController = `using Microsoft.AspNetCore.Mvc;
+
+namespace TaskManager.Controllers;
+
+[Route("tasks")]
+public class TasksController : Controller
+{
+    [HttpGet("")]
+    public IActionResult Index()
+    {
+        return View();
+    }
+
+    [HttpGet("{id:int}")]
+    public IActionResult Details(int id)
+    {
+        return View();
+    }
+}`;
+
+const taskActions = `public class TasksController : Controller
+{
+    [HttpGet("tasks/new")]
+    public IActionResult New()
+    {
+        return View();
+    }
+
+    [HttpPost("tasks")]
+    public IActionResult Create()
+    {
+        // 入力値を保存する処理は第6章、第7章で追加します
+        return RedirectToAction(nameof(Index));
+    }
+}`;
+---
+
+<Layout
+  title="第4章 ルーティングとコントローラー | ASP.NET Lesson"
+  description="ASP.NET Core MVC の従来のルーティングと属性ルーティング、GET と POST、RESTful な URL 設計の基本を学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 04 <span>/ 10</span>
+        </p>
+        <h1>
+          ルーティングと
+          <br />
+          コントローラー
+        </h1>
+        <p class="lead">
+          URL と HTTP メソッドから、実行する Controller と Action を選ぶ仕組みを学びます
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>URL が Controller と Action に対応する仕組み</li>
+            <li>従来のルーティングと属性ルーティングの違い</li>
+            <li>画面表示の GET と、状態を変える POST の使い分け</li>
+            <li>タスクをリソースとして捉える URL 設計</li>
+          </ul>
+        </section>
+
+        <section id="routing">
+          <p class="section-label">ROUTING</p>
+          <h2>ルーティングとは</h2>
+          <p>
+            ルーティングは、届いた HTTP リクエストの URL と HTTP メソッドを見て、実行する Controller
+            と Action を選ぶ仕組みです。第3章で作成した <code>TasksController</code>{' '}
+            も、ルーティングによって呼び出されます
+          </p>
+
+          <figure class="route-flow" aria-labelledby="route-flow-caption">
+            <figcaption id="route-flow-caption">URL から Action が選ばれるまで</figcaption>
+            <div class="route-flow__items">
+              <div class="route-flow__item route-flow__item--request">
+                <span>REQUEST</span>
+                <strong>GET /Tasks/Details/12</strong>
+              </div>
+              <div class="route-flow__arrow" aria-hidden="true">
+                →
+              </div>
+              <div class="route-flow__item">
+                <span>ROUTING</span>
+                <strong>URL と HTTP メソッドを照合</strong>
+              </div>
+              <div class="route-flow__arrow" aria-hidden="true">
+                →
+              </div>
+              <div class="route-flow__item route-flow__item--action">
+                <span>ACTION</span>
+                <strong>
+                  TasksController
+                  <br />
+                  Details(12)
+                </strong>
+              </div>
+            </div>
+          </figure>
+
+          <aside class="note">
+            <h3>URL は画面への住所</h3>
+            <p>
+              URL
+              は利用者が見たり、ブックマークしたり、リンクしたりする公開された入口です。Controller
+              の内部構造ではなく、利用者にとって意味のある URL を考えます
+            </p>
+          </aside>
+        </section>
+
+        <section id="conventional">
+          <p class="section-label">CONVENTIONAL ROUTING</p>
+          <h2>従来のルーティング</h2>
+          <p>
+            MVC テンプレートでは、<code>Program.cs</code>{' '}
+            に従来のルーティングが設定されています。1つのパターンで、多くの Controller と Action
+            の組み合わせを扱えるため、画面中心の MVC アプリケーションに向いています
+          </p>
+
+          <aside class="note">
+            <h3>用語について</h3>
+            <p>
+              英語では <em>conventional routing</em> と呼び、日本語版の Microsoft Learn
+              では「従来のルーティング」と表記されます。「慣例ルーティング」と呼ばれることもありますが、この講座では公式ドキュメントに合わせて「従来のルーティング」を使います
+            </p>
+          </aside>
+
+          <div class="code-block">
+            <Code code={conventionalRoute} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            パターンの <code>controller</code>、<code>action</code>、<code>id</code> は、URL
+            の各部分を表すプレースホルダーです。既定値と省略可能な値にも注目してください
+          </p>
+
+          <dl class="route-parts">
+            <div>
+              <dt>
+                <code>{'{controller=Home}'}</code>
+              </dt>
+              <dd>
+                Controller 名です。URL にないときは <code>Home</code> になります
+              </dd>
+            </div>
+            <div>
+              <dt>
+                <code>{'{action=Index}'}</code>
+              </dt>
+              <dd>
+                Action 名です。URL にないときは <code>Index</code> になります
+              </dd>
+            </div>
+            <div>
+              <dt>
+                <code>{'{id?}'}</code>
+              </dt>
+              <dd>
+                任意の識別子です。末尾の <code>?</code> は省略できることを表します
+              </dd>
+            </div>
+          </dl>
+
+          <p>上記のパターンにマッチする URL と、実行される Action の例は以下です</p>
+
+          <div class="route-examples" role="region" aria-label="従来のルーティングの対応例">
+            <div class="route-examples__header">
+              <span>URL</span>
+              <span>実行される Action</span>
+            </div>
+            <div>
+              <code>/</code>
+              <span>
+                <code>HomeController.Index()</code>
+              </span>
+            </div>
+            <div>
+              <code>/Tasks</code>
+              <span>
+                <code>TasksController.Index()</code>
+              </span>
+            </div>
+            <div>
+              <code>/Tasks/Details/12</code>
+              <span>
+                <code>TasksController.Details(12)</code>
+              </span>
+            </div>
+          </div>
+
+          <aside class="note">
+            <h3>Controller 名の末尾は省く</h3>
+            <p>
+              URL では <code>TasksController</code> の末尾にある <code>Controller</code> を書かず、
+              <code>Tasks</code> とします。従来のルーティングでは、この名前の対応が特に重要です
+            </p>
+          </aside>
+        </section>
+
+        <section id="attribute">
+          <p class="section-label">ATTRIBUTE ROUTING</p>
+          <h2>属性ルーティング</h2>
+          <p>
+            属性ルーティングでは、<code>[Route]</code> や <code>[HttpGet]</code> を Controller や
+            Action に書き、対応する URL をコードの近くで明示します。URL
+            に固有の形を持たせたいときに便利です
+          </p>
+
+          <div class="code-block">
+            <Code code={tasksController} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            ここでは Controller に <code>[Route("tasks")]</code> を置き、<code>Index</code> は{' '}
+            <code>GET /tasks</code>、<code>Details</code> は <code>GET /tasks/12</code>{' '}
+            のような要求を受け取ります。<code>{'{id:int}'}</code> は、<code>id</code>{' '}
+            が整数である要求だけを受け取る制約です
+          </p>
+
+          <div class="lesson-card-grid" role="list">
+            <div role="listitem">
+              <h3>従来のルーティング</h3>
+              <p>
+                URL の共通パターンを <code>Program.cs</code> にまとめる方法です
+              </p>
+            </div>
+            <div role="listitem">
+              <h3>属性ルーティング</h3>
+              <p>Action の近くに URL を書き、個別の対応を明示する方法です</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="http-methods">
+          <p class="section-label">HTTP METHODS</p>
+          <h2>GET と POST を使い分ける</h2>
+          <p>
+            同じ URL でも、HTTP メソッドが異なれば別の Action
+            を対応させられます。画面を取得する操作には
+            GET、作成や更新などサーバーの状態を変える操作には POST を使うのが基本です
+          </p>
+          <p>
+            POST の Action も HTML
+            を返せますが、成功後に別の画面を表示したいときは、操作と画面表示を分けるためにリダイレクトを返すのが一般的です。ブラウザーはリダイレクト先へ
+            GET を送り、その GET の Action が次の画面を表示します
+          </p>
+
+          <figure class="method-diagram" aria-labelledby="method-diagram-caption">
+            <figcaption id="method-diagram-caption">新しいタスクを作るときの要求</figcaption>
+            <div class="method-diagram__row">
+              <span class="method-badge method-badge--get">GET</span>
+              <code>/tasks/new</code>
+              <span>入力フォームを表示</span>
+            </div>
+            <div class="method-diagram__arrow" aria-hidden="true">
+              ↓
+            </div>
+            <div class="method-diagram__row">
+              <span class="method-badge method-badge--post">POST</span>
+              <code>/tasks</code>
+              <span>入力内容を送信して作成</span>
+            </div>
+            <div class="method-diagram__arrow" aria-hidden="true">
+              ↓
+            </div>
+            <div class="method-diagram__row method-diagram__row--result">
+              <span>302</span>
+              <code>Location: /tasks</code>
+              <span>一覧へ移動するよう伝える</span>
+            </div>
+            <div class="method-diagram__arrow" aria-hidden="true">
+              ↓
+            </div>
+            <div class="method-diagram__row">
+              <span class="method-badge method-badge--get">GET</span>
+              <code>/tasks</code>
+              <span>一覧画面を表示</span>
+            </div>
+          </figure>
+
+          <div class="code-block">
+            <Code code={taskActions} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>RedirectToAction</code> は、処理のあとに別の Action へ誘導する応答を返します。POST
+            のあとに GET を挟むこの流れは PRG
+            パターンと呼ばれ、ブラウザーの再読み込みによる二重送信を避けやすくなります。入力値に問題がある場合は、リダイレクトせずに同じフォームを再表示します。フォームの入力値を受け取る方法は第6章で扱います
+          </p>
+
+          <aside class="note">
+            <h3>HTML フォームで使えるメソッド</h3>
+            <p>
+              標準の HTML フォームは <code>GET</code> と <code>POST</code> を送れます。この講座の
+              MPA では、更新や削除も POST のフォームとして実装し、URL
+              と画面の役割をわかりやすく保ちます
+            </p>
+          </aside>
+        </section>
+
+        <section id="restful">
+          <p class="section-label">RESTFUL URLS</p>
+          <h2>RESTful な URL を考える</h2>
+          <p>
+            タスクのように扱う対象をリソースと呼びます。URL
+            では動詞を増やすより、リソースを複数形の名詞で表し、操作の違いは HTTP
+            メソッドや画面の役割で表すと整理しやすくなります
+          </p>
+
+          <div class="resource-table" role="region" aria-label="タスク画面の URL 設計例">
+            <div class="resource-table__header">
+              <span>目的</span>
+              <span>メソッド</span>
+              <span>URL</span>
+            </div>
+            <div>
+              <span>一覧を表示</span>
+              <b class="method-badge method-badge--get">GET</b>
+              <code>/tasks</code>
+            </div>
+            <div>
+              <span>詳細を表示</span>
+              <b class="method-badge method-badge--get">GET</b>
+              <code>/tasks/12</code>
+            </div>
+            <div>
+              <span>作成フォームを表示</span>
+              <b class="method-badge method-badge--get">GET</b>
+              <code>/tasks/new</code>
+            </div>
+            <div>
+              <span>タスクを作成</span>
+              <b class="method-badge method-badge--post">POST</b>
+              <code>/tasks</code>
+            </div>
+            <div>
+              <span>編集フォームを表示</span>
+              <b class="method-badge method-badge--get">GET</b>
+              <code>/tasks/12/edit</code>
+            </div>
+            <div>
+              <span>タスクを更新</span>
+              <b class="method-badge method-badge--post">POST</b>
+              <code>/tasks/12/edit</code>
+            </div>
+          </div>
+
+          <h3 class="subsection-heading">PUT、PATCH、DELETE はいつ使うか</h3>
+          <p>
+            PUT、PATCH、DELETE は特別なものではなく、Web API ではよく使われる HTTP
+            メソッドです。ASP.NET Core でもそれぞれに対応する属性を Action に付けられます
+          </p>
+
+          <div class="other-methods" role="list">
+            <div role="listitem">
+              <b class="method-badge method-badge--put">PUT</b>
+              <p>リソース全体を置き換える更新</p>
+              <code>/tasks/12</code>
+            </div>
+            <div role="listitem">
+              <b class="method-badge method-badge--patch">PATCH</b>
+              <p>一部の項目だけを変更する更新</p>
+              <code>/tasks/12</code>
+            </div>
+            <div role="listitem">
+              <b class="method-badge method-badge--delete">DELETE</b>
+              <p>リソースを削除</p>
+              <code>/tasks/12</code>
+            </div>
+          </div>
+
+          <p>
+            一方、標準の HTML フォームがサーバーへ送るメソッドは GET と POST
+            です。この講座ではサーバーサイドレンダリングの MPA を作るため、更新と削除は POST
+            のフォームとして扱います。Web API を作るときは、PUT、PATCH、DELETE
+            を含めた設計を選択できます
+          </p>
+
+          <aside class="note">
+            <h3>画面中心の MVC での RESTful</h3>
+            <p>
+              Web API の厳密な REST をそのまま目指す必要はありません。ここでは、読みやすい名詞の URL
+              と HTTP メソッドの役割を意識し、画面遷移を予測しやすくすることを目標にします
+            </p>
+          </aside>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>次章では Razor 構文とレイアウトを使い、データを含む一覧画面と詳細画面を組み立てます</p>
+          <span>CHAPTER 05 — Razor とレイアウト</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/controllers/routing?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core でのコントローラー アクションへのルーティング
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/controllers/actions?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC でコントローラーで要求を処理する
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .route-flow,
+  .method-diagram {
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .route-flow figcaption,
+  .method-diagram figcaption {
+    margin-bottom: 20px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .route-flow__items {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+
+  .route-flow__item {
+    min-height: 105px;
+    padding: 18px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #881337;
+  }
+
+  .route-flow__item--request {
+    background: #fff1f2;
+  }
+
+  .route-flow__item--action {
+    border-color: #fda4af;
+    background: #ffe4e6;
+  }
+
+  .route-flow__item span {
+    display: block;
+    margin-bottom: 8px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .route-flow__item strong {
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .route-flow__arrow,
+  .method-diagram__arrow {
+    color: #e11d48;
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+
+  .route-parts {
+    display: grid;
+    margin: 28px 0;
+    border-top: 1px solid #f0d8dc;
+  }
+
+  .route-parts div {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.48fr) 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .route-parts dt {
+    color: #881337;
+    font-weight: 800;
+  }
+
+  .route-parts dd {
+    margin: 0;
+    color: #70565e;
+    line-height: 1.7;
+  }
+
+  .route-examples,
+  .resource-table {
+    display: grid;
+    margin: 30px 0;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .route-examples > div {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.45fr) 1fr;
+    gap: 18px;
+    align-items: center;
+    padding: 15px 18px;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .resource-table > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 78px minmax(120px, 0.8fr);
+    gap: 18px;
+    align-items: center;
+    padding: 15px 18px;
+    border-bottom: 1px solid #f0d8dc;
+    color: #70565e;
+  }
+
+  .route-examples > div:last-child,
+  .resource-table > div:last-child {
+    border-bottom: 0;
+  }
+
+  .route-examples__header,
+  .resource-table__header {
+    background: #fff1f2;
+    color: #881337 !important;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .method-diagram {
+    display: grid;
+    justify-items: center;
+  }
+
+  .method-diagram figcaption {
+    width: 100%;
+  }
+
+  .method-diagram__row {
+    display: grid;
+    grid-template-columns: 72px minmax(124px, 0.8fr) minmax(0, 1fr);
+    gap: 14px;
+    width: min(100%, 630px);
+    align-items: center;
+    padding: 15px 18px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #70565e;
+    font-size: 0.86rem;
+  }
+
+  .method-diagram__row--result {
+    border-color: #fda4af;
+    background: #fff1f2;
+  }
+
+  .method-diagram__arrow {
+    padding: 6px 0;
+  }
+
+  .method-badge {
+    display: inline-block;
+    width: fit-content;
+    padding: 0.22em 0.48em;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .method-badge--get {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .method-badge--post {
+    background: #fce7f3;
+    color: #9d174d;
+  }
+
+  .method-badge--put {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  .method-badge--patch {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .method-badge--delete {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .other-methods {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 28px 0;
+  }
+
+  .other-methods > div {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .other-methods p {
+    margin: 0;
+    color: #70565e;
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 720px) {
+    .route-flow__items {
+      grid-template-columns: 1fr;
+    }
+
+    .route-flow__arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
+    .route-parts div,
+    .route-examples > div,
+    .resource-table > div,
+    .method-diagram__row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .route-examples__header,
+    .resource-table__header {
+      display: none !important;
+    }
+
+    .other-methods {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
