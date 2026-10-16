@@ -10,7 +10,7 @@ const tableOfContents = [
   ['first-page', '最初の画面を追加する'],
 ];
 
-const projectTree = `TaskManager/
+const projectTree = `TodoManager/
 ├── Controllers/
 │   └── HomeController.cs
 ├── Models/
@@ -22,11 +22,11 @@ const projectTree = `TaskManager/
 ├── Program.cs
 └── appsettings.json`;
 
-const tasksController = `using Microsoft.AspNetCore.Mvc;
+const todosController = `using Microsoft.AspNetCore.Mvc;
 
-namespace TaskManager.Controllers;
+namespace TodoManager.Controllers;
 
-public class TasksController : Controller
+public class TodosController : Controller
 {
     public IActionResult Index()
     {
@@ -34,12 +34,12 @@ public class TasksController : Controller
     }
 }`;
 
-const tasksView = `@{
-    ViewData["Title"] = "タスク";
+const todosView = `@{
+    ViewData["Title"] = "TODO 管理";
 }
 
-<h1>タスク</h1>
-<p>タスク管理をここから始めます</p>`;
+<h1>TODO 管理</h1>
+<p>TODO 管理をここから始めます</p>`;
 ---
 
 <Layout
@@ -85,7 +85,7 @@ const tasksView = `@{
             <li>MVC プロジェクトの主要なフォルダーとファイル</li>
             <li>Model、View、Controller のそれぞれの責務</li>
             <li>Controller が View を選び、HTML を返す流れ</li>
-            <li>タスク画面を追加する最初の手順</li>
+            <li>TODO 画面を追加する最初の手順</li>
           </ul>
         </section>
 
@@ -109,7 +109,7 @@ const tasksView = `@{
             </div>
             <div role="listitem">
               <h3>Models</h3>
-              <p>タスクなどのデータと、アプリケーションのルールを表します</p>
+              <p>TODO などのデータと、アプリケーションのルールを表します</p>
             </div>
             <div role="listitem">
               <h3>Views</h3>
@@ -163,7 +163,7 @@ const tasksView = `@{
           <dl class="mvc-roles">
             <div>
               <dt>Model</dt>
-              <dd>タスクの名前や完了状態など、アプリケーションが扱うデータとルールを表します</dd>
+              <dd>TODO の名前や完了状態など、アプリケーションが扱うデータとルールを表します</dd>
             </div>
             <div>
               <dt>View</dt>
@@ -185,7 +185,7 @@ const tasksView = `@{
             を探す場所を決めるために重要です
           </p>
           <p>
-            以下の図では、<code>TasksController</code> の <code>Index</code> アクションを例にします
+            以下の図では、<code>TodosController</code> の <code>Index</code> アクションを例にします
           </p>
 
           <figure class="request-flow" aria-labelledby="request-flow-caption">
@@ -230,7 +230,7 @@ const tasksView = `@{
                 <div class="request-flow__server-label">WEB SERVER</div>
                 <div class="request-flow__node request-flow__node--browser">ブラウザー</div>
                 <div class="request-flow__node request-flow__node--controller">
-                  <strong>TasksController</strong>
+                  <strong>TodosController</strong>
                   <small>Controller 名</small>
                   <b>Index</b>
                   <small>Action 名</small>
@@ -240,7 +240,7 @@ const tasksView = `@{
                   <small>データとルール</small>
                 </div>
                 <div class="request-flow__node request-flow__node--view">
-                  <strong>Views/Tasks/Index.cshtml</strong>
+                  <strong>Views/Todos/Index.cshtml</strong>
                   <small>View と Razor</small>
                 </div>
                 <span class="request-flow__label request-flow__label--request">
@@ -258,10 +258,10 @@ const tasksView = `@{
           <aside class="note">
             <h3>名前がつながる慣例</h3>
             <p>
-              慣例ルーティングでは <code>/Tasks/Index</code> の <code>Tasks</code> が{' '}
-              <code>TasksController</code>、<code>Index</code> が <code>Index</code>{' '}
+              慣例ルーティングでは <code>/todos/index</code> の <code>Todos</code> が{' '}
+              <code>TodosController</code>、<code>Index</code> が <code>Index</code>{' '}
               アクションを表します。<code>return View()</code> は、まず{' '}
-              <code>Views/Tasks/Index.cshtml</code> を探します。名前を変えると URL や View
+              <code>Views/Todos/Index.cshtml</code> を探します。名前を変えると URL や View
               の配置も合わせて見直す必要があります
             </p>
           </aside>
@@ -271,29 +271,29 @@ const tasksView = `@{
           <p class="section-label">FIRST PAGE</p>
           <h2>最初の画面を追加する</h2>
           <p>
-            タスク管理アプリケーションの入口として、タスク一覧用の Controller と View
+            TODO 管理アプリケーションの入口として、TODO 一覧用の Controller と View
             を追加します。この時点ではデータベースを使わず、画面を表示するところまでを確認します
           </p>
 
           <h3 class="subsection-heading">1. Controller を追加する</h3>
           <p>
-            <code>Controllers/TasksController.cs</code> を作成し、次のコードを書きます
+            <code>Controllers/TodosController.cs</code> を作成し、次のコードを書きます
           </p>
           <div class="code-block">
-            <Code code={tasksController} lang="csharp" theme="github-dark" />
+            <Code code={todosController} lang="csharp" theme="github-dark" />
           </div>
 
           <h3 class="subsection-heading">2. View を追加する</h3>
           <p>
-            <code>Views/Tasks/Index.cshtml</code> を作成し、次の内容を書きます。
+            <code>Views/Todos/Index.cshtml</code> を作成し、次の内容を書きます。
             <code>ViewData</code> と Razor の詳しい書き方は第5章で扱います
           </p>
           <div class="code-block">
-            <Code code={tasksView} lang="html" theme="github-dark" />
+            <Code code={todosView} lang="html" theme="github-dark" />
           </div>
 
           <p>
-            アプリケーションを起動し、<code>/Tasks</code> または <code>/Tasks/Index</code>{' '}
+            アプリケーションを起動し、<code>/todos</code> または <code>/todos/index</code>{' '}
             を開いて画面が表示されることを確認してください。URL と Controller
             の対応は次章で詳しく扱います
           </p>

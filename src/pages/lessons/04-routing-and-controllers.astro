@@ -15,12 +15,12 @@ const conventionalRoute = `app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");`;
 
-const tasksController = `using Microsoft.AspNetCore.Mvc;
+const todosController = `using Microsoft.AspNetCore.Mvc;
 
-namespace TaskManager.Controllers;
+namespace TodoManager.Controllers;
 
-[Route("tasks")]
-public class TasksController : Controller
+[Route("todos")]
+public class TodosController : Controller
 {
     [HttpGet("")]
     public IActionResult Index()
@@ -35,15 +35,15 @@ public class TasksController : Controller
     }
 }`;
 
-const taskActions = `public class TasksController : Controller
+const todoActions = `public class TodosController : Controller
 {
-    [HttpGet("tasks/new")]
+    [HttpGet("todos/new")]
     public IActionResult New()
     {
         return View();
     }
 
-    [HttpPost("tasks")]
+    [HttpPost("todos")]
     public IActionResult Create()
     {
         // 入力値を保存する処理は第6章、第7章で追加します
@@ -96,7 +96,7 @@ const taskActions = `public class TasksController : Controller
             <li>URL が Controller と Action に対応する仕組み</li>
             <li>従来のルーティングと属性ルーティングの違い</li>
             <li>画面表示の GET と、状態を変える POST の使い分け</li>
-            <li>タスクをリソースとして捉える URL 設計</li>
+            <li>TODO をリソースとして捉える URL 設計</li>
           </ul>
         </section>
 
@@ -105,7 +105,7 @@ const taskActions = `public class TasksController : Controller
           <h2>ルーティングとは</h2>
           <p>
             ルーティングは、届いた HTTP リクエストの URL と HTTP メソッドを見て、実行する Controller
-            と Action を選ぶ仕組みです。第3章で作成した <code>TasksController</code>{' '}
+            と Action を選ぶ仕組みです。第3章で作成した <code>TodosController</code>{' '}
             も、ルーティングによって呼び出されます
           </p>
 
@@ -114,7 +114,7 @@ const taskActions = `public class TasksController : Controller
             <div class="route-flow__items">
               <div class="route-flow__item route-flow__item--request">
                 <span>REQUEST</span>
-                <strong>GET /Tasks/Details/12</strong>
+                <strong>GET /todos/details/12</strong>
               </div>
               <div class="route-flow__arrow" aria-hidden="true">
                 →
@@ -129,7 +129,7 @@ const taskActions = `public class TasksController : Controller
               <div class="route-flow__item route-flow__item--action">
                 <span>ACTION</span>
                 <strong>
-                  TasksController
+                  TodosController
                   <br />
                   Details(12)
                 </strong>
@@ -214,15 +214,15 @@ const taskActions = `public class TasksController : Controller
               </span>
             </div>
             <div>
-              <code>/Tasks</code>
+              <code>/todos</code>
               <span>
-                <code>TasksController.Index()</code>
+                <code>TodosController.Index()</code>
               </span>
             </div>
             <div>
-              <code>/Tasks/Details/12</code>
+              <code>/todos/details/12</code>
               <span>
-                <code>TasksController.Details(12)</code>
+                <code>TodosController.Details(12)</code>
               </span>
             </div>
           </div>
@@ -230,8 +230,8 @@ const taskActions = `public class TasksController : Controller
           <aside class="note">
             <h3>Controller 名の末尾は省く</h3>
             <p>
-              URL では <code>TasksController</code> の末尾にある <code>Controller</code> を書かず、
-              <code>Tasks</code> とします。従来のルーティングでは、この名前の対応が特に重要です
+              URL では <code>TodosController</code> の末尾にある <code>Controller</code> を書かず、
+              <code>Todos</code> とします。従来のルーティングでは、この名前の対応が特に重要です
             </p>
           </aside>
         </section>
@@ -246,12 +246,12 @@ const taskActions = `public class TasksController : Controller
           </p>
 
           <div class="code-block">
-            <Code code={tasksController} lang="csharp" theme="github-dark" />
+            <Code code={todosController} lang="csharp" theme="github-dark" />
           </div>
 
           <p>
-            ここでは Controller に <code>[Route("tasks")]</code> を置き、<code>Index</code> は{' '}
-            <code>GET /tasks</code>、<code>Details</code> は <code>GET /tasks/12</code>{' '}
+            ここでは Controller に <code>[Route("todos")]</code> を置き、<code>Index</code> は{' '}
+            <code>GET /todos</code>、<code>Details</code> は <code>GET /todos/12</code>{' '}
             のような要求を受け取ります。<code>{'{id:int}'}</code> は、<code>id</code>{' '}
             が整数である要求だけを受け取る制約です
           </p>
@@ -285,10 +285,10 @@ const taskActions = `public class TasksController : Controller
           </p>
 
           <figure class="method-diagram" aria-labelledby="method-diagram-caption">
-            <figcaption id="method-diagram-caption">新しいタスクを作るときの要求</figcaption>
+            <figcaption id="method-diagram-caption">新しい TODO を作るときの要求</figcaption>
             <div class="method-diagram__row">
               <span class="method-badge method-badge--get">GET</span>
-              <code>/tasks/new</code>
+              <code>/todos/new</code>
               <span>入力フォームを表示</span>
             </div>
             <div class="method-diagram__arrow" aria-hidden="true">
@@ -296,7 +296,7 @@ const taskActions = `public class TasksController : Controller
             </div>
             <div class="method-diagram__row">
               <span class="method-badge method-badge--post">POST</span>
-              <code>/tasks</code>
+              <code>/todos</code>
               <span>入力内容を送信して作成</span>
             </div>
             <div class="method-diagram__arrow" aria-hidden="true">
@@ -304,7 +304,7 @@ const taskActions = `public class TasksController : Controller
             </div>
             <div class="method-diagram__row method-diagram__row--result">
               <span>302</span>
-              <code>Location: /tasks</code>
+              <code>Location: /todos</code>
               <span>一覧へ移動するよう伝える</span>
             </div>
             <div class="method-diagram__arrow" aria-hidden="true">
@@ -312,13 +312,13 @@ const taskActions = `public class TasksController : Controller
             </div>
             <div class="method-diagram__row">
               <span class="method-badge method-badge--get">GET</span>
-              <code>/tasks</code>
+              <code>/todos</code>
               <span>一覧画面を表示</span>
             </div>
           </figure>
 
           <div class="code-block">
-            <Code code={taskActions} lang="csharp" theme="github-dark" />
+            <Code code={todoActions} lang="csharp" theme="github-dark" />
           </div>
 
           <p>
@@ -341,12 +341,12 @@ const taskActions = `public class TasksController : Controller
           <p class="section-label">RESTFUL URLS</p>
           <h2>RESTful な URL を考える</h2>
           <p>
-            タスクのように扱う対象をリソースと呼びます。URL
+            TODO のように扱う対象をリソースと呼びます。URL
             では動詞を増やすより、リソースを複数形の名詞で表し、操作の違いは HTTP
             メソッドや画面の役割で表すと整理しやすくなります
           </p>
 
-          <div class="resource-table" role="region" aria-label="タスク画面の URL 設計例">
+          <div class="resource-table" role="region" aria-label="TODO 画面の URL 設計例">
             <div class="resource-table__header">
               <span>目的</span>
               <span>メソッド</span>
@@ -355,32 +355,32 @@ const taskActions = `public class TasksController : Controller
             <div>
               <span>一覧を表示</span>
               <b class="method-badge method-badge--get">GET</b>
-              <code>/tasks</code>
+              <code>/todos</code>
             </div>
             <div>
               <span>詳細を表示</span>
               <b class="method-badge method-badge--get">GET</b>
-              <code>/tasks/12</code>
+              <code>/todos/12</code>
             </div>
             <div>
               <span>作成フォームを表示</span>
               <b class="method-badge method-badge--get">GET</b>
-              <code>/tasks/new</code>
+              <code>/todos/new</code>
             </div>
             <div>
-              <span>タスクを作成</span>
+              <span>TODO を作成</span>
               <b class="method-badge method-badge--post">POST</b>
-              <code>/tasks</code>
+              <code>/todos</code>
             </div>
             <div>
               <span>編集フォームを表示</span>
               <b class="method-badge method-badge--get">GET</b>
-              <code>/tasks/12/edit</code>
+              <code>/todos/12/edit</code>
             </div>
             <div>
-              <span>タスクを更新</span>
+              <span>TODO を更新</span>
               <b class="method-badge method-badge--post">POST</b>
-              <code>/tasks/12/edit</code>
+              <code>/todos/12/edit</code>
             </div>
           </div>
 
@@ -394,17 +394,17 @@ const taskActions = `public class TasksController : Controller
             <div role="listitem">
               <b class="method-badge method-badge--put">PUT</b>
               <p>リソース全体を置き換える更新</p>
-              <code>/tasks/12</code>
+              <code>/todos/12</code>
             </div>
             <div role="listitem">
               <b class="method-badge method-badge--patch">PATCH</b>
               <p>一部の項目だけを変更する更新</p>
-              <code>/tasks/12</code>
+              <code>/todos/12</code>
             </div>
             <div role="listitem">
               <b class="method-badge method-badge--delete">DELETE</b>
               <p>リソースを削除</p>
-              <code>/tasks/12</code>
+              <code>/todos/12</code>
             </div>
           </div>
 

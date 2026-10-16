@@ -13,13 +13,13 @@ const tableOfContents = [
 
 const inputModel = `using System.ComponentModel.DataAnnotations;
 
-namespace TaskManager.Models;
+namespace TodoManager.Models;
 
-public class CreateTaskInputModel
+public class CreateTodoInputModel
 {
-    [Required(ErrorMessage = "タスク名を入力してください")]
-    [StringLength(100, ErrorMessage = "タスク名は100文字以内で入力してください")]
-    [Display(Name = "タスク名")]
+    [Required(ErrorMessage = "TODO 名を入力してください")]
+    [StringLength(100, ErrorMessage = "TODO 名は100文字以内で入力してください")]
+    [Display(Name = "TODO 名")]
     public string Title { get; set; } = "";
 
     [StringLength(500, ErrorMessage = "説明は500文字以内で入力してください")]
@@ -27,13 +27,13 @@ public class CreateTaskInputModel
     public string? Description { get; set; }
 }`;
 
-const createView = `@model CreateTaskInputModel
+const createView = `@model CreateTodoInputModel
 
 @{
-    ViewData["Title"] = "タスクを追加";
+    ViewData["Title"] = "TODO を追加";
 }
 
-<h1>タスクを追加</h1>
+<h1>TODO を追加</h1>
 
 <form asp-action="Create" method="post">
     <div asp-validation-summary="ModelOnly"></div>
@@ -53,9 +53,9 @@ const createView = `@model CreateTaskInputModel
     <button type="submit">追加する</button>
 </form>`;
 
-const createAction = `[HttpPost("tasks")]
+const createAction = `[HttpPost("todos")]
 [ValidateAntiForgeryToken]
-public IActionResult Create(CreateTaskInputModel input)
+public IActionResult Create(CreateTodoInputModel input)
 {
     if (!ModelState.IsValid)
     {
@@ -76,7 +76,7 @@ const generatedInput = `<!-- Razor の input 要素 -->
        name="Title"
        value=""
        data-val="true"
-       data-val-required="タスク名を入力してください" />`;
+       data-val-required="TODO 名を入力してください" />`;
 ---
 
 <Layout
@@ -98,7 +98,7 @@ const generatedInput = `<!-- Razor の input 要素 -->
           入力値の検証
         </h1>
         <p class="lead">
-          タスク作成フォームを通して、入力値を受け取り、安全に確認する流れを学びます
+          TODO 作成フォームを通して、入力値を受け取り、安全に確認する流れを学びます
         </p>
       </div>
     </header>
@@ -133,16 +133,16 @@ const generatedInput = `<!-- Razor の input 要素 -->
           <p class="section-label">FORM FLOW</p>
           <h2>フォーム送信の流れ</h2>
           <p>
-            タスクを追加する画面では、利用者がフォームへ入力して送信します。ブラウザーは入力値を
-            POST し、サーバー側ではモデルバインディングと検証を経て Action が処理を決めます
+            TODO を追加する画面では、利用者がフォームへ入力して送信します。ブラウザーは入力値を POST
+            し、サーバー側ではモデルバインディングと検証を経て Action が処理を決めます
           </p>
 
           <figure class="form-flow" aria-labelledby="form-flow-caption">
-            <figcaption id="form-flow-caption">タスク作成フォームの送信と応答</figcaption>
+            <figcaption id="form-flow-caption">TODO 作成フォームの送信と応答</figcaption>
             <div class="form-flow__browser">
               <strong>ブラウザー</strong>
-              <span>タスク名を入力</span>
-              <b>POST /tasks</b>
+              <span>TODO 名を入力</span>
+              <b>POST /todos</b>
             </div>
             <div class="form-flow__arrow form-flow__arrow--request" aria-hidden="true">
               →
@@ -157,7 +157,7 @@ const generatedInput = `<!-- Razor の input 要素 -->
               <div>
                 <strong>有効</strong>
                 <span>302 リダイレクト</span>
-                <b>GET /tasks</b>
+                <b>GET /todos</b>
               </div>
               <div>
                 <strong>無効</strong>
@@ -192,17 +192,17 @@ const generatedInput = `<!-- Razor の input 要素 -->
             </div>
             <div role="listitem">
               <code>&lt;input type="text" name="Title" /&gt;</code>
-              <code>CreateTaskInputModel.Title</code>
+              <code>CreateTodoInputModel.Title</code>
             </div>
             <div role="listitem">
               <code>&lt;textarea name="Description"&gt;&lt;/textarea&gt;</code>
-              <code>CreateTaskInputModel.Description</code>
+              <code>CreateTodoInputModel.Description</code>
             </div>
           </div>
 
           <p>
             たとえば <code>&lt;input type="text" name="Title" /&gt;</code> に入力された値は、
-            <code>CreateTaskInputModel</code> の <code>Title</code>{' '}
+            <code>CreateTodoInputModel</code> の <code>Title</code>{' '}
             プロパティへ入ります。数値や日付への変換に失敗した場合も、エラーは{' '}
             <code>ModelState</code> に記録されます
           </p>
@@ -211,7 +211,7 @@ const generatedInput = `<!-- Razor の input 要素 -->
             <h3>入力専用の ViewModel を使う</h3>
             <p>
               作成フォームには、表示用の ViewModel とは別に、受け取ってよい項目だけを持つ{' '}
-              <code>CreateTaskInputModel</code> を用意します。Entity
+              <code>CreateTodoInputModel</code> を用意します。Entity
               を直接受け取らないことで、意図しない項目まで更新するリスクを減らせます
             </p>
           </aside>
@@ -262,7 +262,8 @@ const generatedInput = `<!-- Razor の input 要素 -->
           <p class="section-label">VALIDATION</p>
           <h2>Data Annotations による検証</h2>
           <p>
-            入力モデルのプロパティに属性を付けると、入力規則を宣言できます。この例では、タスク名を必須かつ100文字以内、説明を500文字以内にしています
+            入力モデルのプロパティに属性を付けると、入力規則を宣言できます。この例では、TODO
+            名を必須かつ100文字以内、説明を500文字以内にしています
           </p>
 
           <div class="code-block">
@@ -315,9 +316,9 @@ const generatedInput = `<!-- Razor の input 要素 -->
 
           <div class="error-display" aria-label="検証エラーの表示例">
             <div class="error-display__form">
-              <label>タスク名</label>
+              <label>TODO 名</label>
               <input aria-invalid="true" value="" />
-              <span>タスク名を入力してください</span>
+              <span>TODO 名を入力してください</span>
               <button type="button">追加する</button>
             </div>
             <div class="error-display__caption">
@@ -335,8 +336,8 @@ const generatedInput = `<!-- Razor の input 要素 -->
 
         <footer class="lesson-footer">
           <p>
-            次章では Entity Framework Core
-            とデータベースを導入し、入力したタスクを保存、編集、削除できるようにします
+            次章では Entity Framework Core とデータベースを導入し、入力した TODO
+            を保存、編集、削除できるようにします
           </p>
           <span>CHAPTER 07 — データベースと Entity Framework Core</span>
         </footer>

@@ -14,8 +14,8 @@ const tableOfContents = [
 const sdkCommands = `dotnet --info
 dotnet --version`;
 
-const createProjectCommands = `dotnet new mvc -o TaskManager -au None
-cd TaskManager`;
+const createProjectCommands = `dotnet new mvc -o TodoManager -au None
+cd TodoManager`;
 
 const runCommand = 'dotnet run';
 
@@ -146,7 +146,7 @@ const loggingConfiguration = `{
           <p class="section-label">CREATE</p>
           <h2>MVC プロジェクトを作る</h2>
           <p>
-            作業用のディレクトリで、MVC テンプレートを使って <code>TaskManager</code>{' '}
+            作業用のディレクトリで、MVC テンプレートを使って <code>TodoManager</code>{' '}
             プロジェクトを作成します。<code>-au None</code>{' '}
             は、認証なしのテンプレートを選ぶ指定です。認証は第9章で追加します
           </p>

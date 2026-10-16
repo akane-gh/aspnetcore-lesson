@@ -18,18 +18,18 @@ const razorBasics = `@{
 
 @if (remainingCount > 0)
 {
-    <p>未完了のタスクは @remainingCount 件です</p>
+    <p>未完了の TODO は @remainingCount 件です</p>
 }`;
 
-const viewModel = `namespace TaskManager.Models;
+const viewModel = `namespace TodoManager.Models;
 
-public class TasksIndexViewModel
+public class TodosIndexViewModel
 {
     public required string PageTitle { get; init; }
-    public required IReadOnlyList<TaskListItemViewModel> Tasks { get; init; }
+    public required IReadOnlyList<TodoListItemViewModel> Todos { get; init; }
 }
 
-public class TaskListItemViewModel
+public class TodoListItemViewModel
 {
     public int Id { get; init; }
     public required string Title { get; init; }
@@ -38,10 +38,10 @@ public class TaskListItemViewModel
 
 const controllerWithViewModel = `public IActionResult Index()
 {
-    var model = new TasksIndexViewModel
+    var model = new TodosIndexViewModel
     {
-        PageTitle = "タスク一覧",
-        Tasks =
+        PageTitle = "TODO 一覧",
+        Todos =
         [
             new() { Id = 1, Title = "Razor を読む", IsCompleted = true },
             new() { Id = 2, Title = "詳細画面を作る", IsCompleted = false },
@@ -54,7 +54,7 @@ const controllerWithViewModel = `public IActionResult Index()
 const viewDataExample = `// Controller
 public IActionResult Index()
 {
-    ViewData["Title"] = "タスク一覧";
+    ViewData["Title"] = "TODO 一覧";
     return View();
 }
 
@@ -69,19 +69,19 @@ const layoutCode = `<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="utf-8" />
-    <title>@ViewData["Title"] - TaskManager</title>
+    <title>@ViewData["Title"] - TodoManager</title>
 </head>
 <body>
-    <header>TaskManager</header>
+    <header>TodoManager</header>
     <main>
         @RenderBody()
     </main>
 </body>
 </html>`;
 
-const partialCode = `@model TaskListItemViewModel
+const partialCode = `@model TodoListItemViewModel
 
-<article class="task-summary">
+<article class="todo-summary">
     <h2>@Model.Title</h2>
     @if (Model.IsCompleted)
     {
@@ -91,7 +91,7 @@ const partialCode = `@model TaskListItemViewModel
     <a asp-action="Details" asp-route-id="@Model.Id">詳細を見る</a>
 </article>`;
 
-const indexView = `@model TasksIndexViewModel
+const indexView = `@model TodosIndexViewModel
 
 @{
     ViewData["Title"] = Model.PageTitle;
@@ -99,13 +99,13 @@ const indexView = `@model TasksIndexViewModel
 
 <h1>@Model.PageTitle</h1>
 
-@foreach (var task in Model.Tasks)
+@foreach (var todo in Model.Todos)
 {
-    <!-- 部分ビュー _TaskSummary.cshtml を呼び出す -->
-    <partial name="_TaskSummary" model="task" />
+    <!-- 部分ビュー _TodoSummary.cshtml を呼び出す -->
+    <partial name="_TodoSummary" model="todo" />
 }`;
 
-const detailsView = `@model TaskListItemViewModel
+const detailsView = `@model TodoListItemViewModel
 
 @{
     ViewData["Title"] = Model.Title;
@@ -133,7 +133,7 @@ const detailsView = `@model TaskListItemViewModel
           Razor と<br />
           レイアウト
         </h1>
-        <p class="lead">C# と HTML を組み合わせ、共通部分を保ちながらタスク画面を組み立てます</p>
+        <p class="lead">C# と HTML を組み合わせ、共通部分を保ちながら TODO 画面を組み立てます</p>
       </div>
     </header>
 
@@ -157,7 +157,7 @@ const detailsView = `@model TaskListItemViewModel
             <li>Razor で C# の値を HTML に出力する方法</li>
             <li>ViewData と ViewModel の役割の違い</li>
             <li>レイアウトと部分ビューで共通部分をまとめる方法</li>
-            <li>タスクの一覧画面と詳細画面を表示する基本</li>
+            <li>TODO の一覧画面と詳細画面を表示する基本</li>
           </ul>
         </section>
 
@@ -327,29 +327,30 @@ const detailsView = `@model TaskListItemViewModel
           <p class="section-label">PARTIAL VIEW</p>
           <h2>部分ビューを使う</h2>
           <p>
-            部分ビューは、ページの一部分を別ファイルへ切り出す仕組みです。タスク一覧の各行のように、繰り返し表示するまとまりに使います。ファイル名の先頭に{' '}
+            部分ビューは、ページの一部分を別ファイルへ切り出す仕組みです。TODO
+            一覧の各行のように、繰り返し表示するまとまりに使います。ファイル名の先頭に{' '}
             <code>_</code> を付けるのが慣例です
           </p>
 
           <div class="partial-diagram" aria-label="部分ビューの再利用">
             <div class="partial-diagram__view">
               <strong>Index.cshtml</strong>
-              <span>タスクごとに呼び出す</span>
+              <span>TODO ごとに呼び出す</span>
             </div>
             <div class="partial-diagram__arrow" aria-hidden="true">
               →
             </div>
             <div class="partial-diagram__partial">
-              <strong>_TaskSummary.cshtml</strong>
+              <strong>_TodoSummary.cshtml</strong>
               <span>1件分の表示を再利用</span>
             </div>
             <div class="partial-diagram__arrow" aria-hidden="true">
               →
             </div>
             <div class="partial-diagram__result">
-              <span>タスク A</span>
-              <span>タスク B</span>
-              <span>タスク C</span>
+              <span>TODO A</span>
+              <span>TODO B</span>
+              <span>TODO C</span>
             </div>
           </div>
 
@@ -358,20 +359,20 @@ const detailsView = `@model TaskListItemViewModel
           </div>
 
           <p>
-            <code>_TaskSummary.cshtml</code> の先頭に <code>@model</code>{' '}
-            を書くと、部分ビューが受け取る型を指定できます。呼び出し側から渡された1件のタスクを{' '}
+            <code>_TodoSummary.cshtml</code> の先頭に <code>@model</code>{' '}
+            を書くと、部分ビューが受け取る型を指定できます。呼び出し側から渡された1件の TODO を{' '}
             <code>Model</code> として表示します
           </p>
 
           <h3 class="subsection-heading">一覧画面と詳細画面を作る</h3>
           <p>
-            タスク一覧には複数のタスクを持つ <code>TasksIndexViewModel</code>{' '}
-            を渡し、各タスクは部分ビューで表示します。詳細画面には1件の{' '}
-            <code>TaskListItemViewModel</code> を渡します
+            TODO 一覧には複数の TODO を持つ <code>TodosIndexViewModel</code> を渡し、各 TODO
+            は部分ビューで表示します。詳細画面には1件の <code>TodoListItemViewModel</code>{' '}
+            を渡します
           </p>
 
           <h3 class="subsection-heading screen-heading">
-            Views/Tasks/Index.cshtml
+            Views/Todos/Index.cshtml
             <span>部分ビューを使う側</span>
           </h3>
           <div class="code-block">
@@ -379,7 +380,7 @@ const detailsView = `@model TaskListItemViewModel
           </div>
 
           <h3 class="subsection-heading screen-heading">
-            Views/Tasks/Details.cshtml
+            Views/Todos/Details.cshtml
             <span>部分ビューからクリックで遷移する先</span>
           </h3>
           <div class="code-block">
@@ -390,7 +391,7 @@ const detailsView = `@model TaskListItemViewModel
             <h3>まだデータベースは使わない</h3>
             <p>
               この章のデータは Controller 内で用意した例です。第7章で Entity Framework Core
-              とデータベースを導入し、実際に保存したタスクを一覧と詳細へ表示します
+              とデータベースを導入し、実際に保存した TODO を一覧と詳細へ表示します
             </p>
           </aside>
         </section>

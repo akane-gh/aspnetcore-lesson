@@ -7,16 +7,16 @@ const tableOfContents = [
   ['ef-core', 'Entity Framework Core とは'],
   ['model', 'Entity と DbContext'],
   ['migration', 'マイグレーション'],
-  ['crud', 'タスクの CRUD を実装する'],
+  ['crud', 'TODO の CRUD を実装する'],
 ];
 
 const packages = `dotnet add package Microsoft.EntityFrameworkCore.Sqlite
 dotnet add package Microsoft.EntityFrameworkCore.Design
 dotnet tool install --global dotnet-ef`;
 
-const taskItem = `namespace TaskManager.Models;
+const todo = `namespace TodoManager.Models;
 
-public class TaskItem
+public class Todo
 {
     public int Id { get; set; }
     public required string Title { get; set; }
@@ -26,19 +26,19 @@ public class TaskItem
 }`;
 
 const dbContext = `using Microsoft.EntityFrameworkCore;
-using TaskManager.Models;
+using TodoManager.Models;
 
-namespace TaskManager.Data;
+namespace TodoManager.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : DbContext(options)
 {
-    public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<Todo> Todos => Set<Todo>();
 }`;
 
 const registration = `// Program.cs
 using Microsoft.EntityFrameworkCore;
-using TaskManager.Data;
+using TodoManager.Data;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(
@@ -46,36 +46,36 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 const connectionString = `{
   "ConnectionStrings": {
-    "DefaultConnection": "Data Source=taskmanager.db"
+    "DefaultConnection": "Data Source=todomanager.db"
   }
 }`;
 
 const migrationCommands = `dotnet ef migrations add InitialCreate
 dotnet ef database update`;
 
-const listAndCreate = `public class TasksController(AppDbContext db) : Controller
+const listAndCreate = `public class TodosController(AppDbContext db) : Controller
 {
-    [HttpGet("tasks")]
+    [HttpGet("todos")]
     public async Task<IActionResult> Index()
     {
-        var tasks = await db.Tasks
-            .OrderBy(task => task.IsCompleted)
-            .ThenByDescending(task => task.CreatedAt)
+        var todos = await db.Todos
+            .OrderBy(todo => todo.IsCompleted)
+            .ThenByDescending(todo => todo.CreatedAt)
             .ToListAsync();
 
-        return View(tasks);
+        return View(todos);
     }
 
-    [HttpPost("tasks")]
+    [HttpPost("todos")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateTaskInputModel input)
+    public async Task<IActionResult> Create(CreateTodoInputModel input)
     {
         if (!ModelState.IsValid)
         {
             return View("New", input);
         }
 
-        db.Tasks.Add(new TaskItem
+        db.Todos.Add(new Todo
         {
             Title = input.Title,
             Description = input.Description,
@@ -86,31 +86,31 @@ const listAndCreate = `public class TasksController(AppDbContext db) : Controlle
     }
 }`;
 
-const editAndDelete = `[HttpPost("tasks/{id:int}/edit")]
+const editAndDelete = `[HttpPost("todos/{id:int}/edit")]
 [ValidateAntiForgeryToken]
-public async Task<IActionResult> Edit(int id, EditTaskInputModel input)
+public async Task<IActionResult> Edit(int id, EditTodoInputModel input)
 {
     if (!ModelState.IsValid) return View(input);
 
-    var task = await db.Tasks.FindAsync(id);
-    if (task is null) return NotFound();
+    var todo = await db.Todos.FindAsync(id);
+    if (todo is null) return NotFound();
 
-    task.Title = input.Title;
-    task.Description = input.Description;
-    task.IsCompleted = input.IsCompleted;
+    todo.Title = input.Title;
+    todo.Description = input.Description;
+    todo.IsCompleted = input.IsCompleted;
     await db.SaveChangesAsync();
 
     return RedirectToAction(nameof(Details), new { id });
 }
 
-[HttpPost("tasks/{id:int}/delete")]
+[HttpPost("todos/{id:int}/delete")]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Delete(int id)
 {
-    var task = await db.Tasks.FindAsync(id);
-    if (task is not null)
+    var todo = await db.Todos.FindAsync(id);
+    if (todo is not null)
     {
-        db.Tasks.Remove(task);
+        db.Todos.Remove(todo);
         await db.SaveChangesAsync();
     }
 
@@ -120,7 +120,7 @@ public async Task<IActionResult> Delete(int id)
 
 <Layout
   title="第7章 データベースと Entity Framework Core | ASP.NET Lesson"
-  description="ASP.NET Core MVC で Entity Framework Core と SQLite を使い、タスクを CRUD する基本を学びます"
+  description="ASP.NET Core MVC で Entity Framework Core と SQLite を使い、TODO を CRUD する基本を学びます"
 >
   <main class="lesson-page">
     <header class="lesson-header">
@@ -136,7 +136,7 @@ public async Task<IActionResult> Delete(int id)
           <br />
           Entity Framework Core
         </h1>
-        <p class="lead">入力したタスクを SQLite に保存し、一覧、編集、削除できるようにします</p>
+        <p class="lead">入力した TODO を SQLite に保存し、一覧、編集、削除できるようにします</p>
       </div>
     </header>
 
@@ -160,7 +160,7 @@ public async Task<IActionResult> Delete(int id)
             <li>Entity Framework Core と SQLite の役割</li>
             <li>Entity と DbContext の定義</li>
             <li>マイグレーションでデータベースを更新する手順</li>
-            <li>タスクの作成、一覧、編集、削除を行う基本</li>
+            <li>TODO の作成、一覧、編集、削除を行う基本</li>
           </ul>
         </section>
 
@@ -174,9 +174,9 @@ public async Task<IActionResult> Delete(int id)
           </p>
 
           <figure class="ef-flow" aria-labelledby="ef-flow-caption">
-            <figcaption id="ef-flow-caption">タスク一覧を表示するときのデータの流れ</figcaption>
+            <figcaption id="ef-flow-caption">TODO 一覧を表示するときのデータの流れ</figcaption>
             <div class="ef-flow__entity">
-              TaskItem
+              Todo
               <br />
               <small>Model / Entity</small>
             </div>
@@ -186,7 +186,7 @@ public async Task<IActionResult> Delete(int id)
             <div class="ef-flow__context">
               AppDbContext
               <br />
-              <small>db.Tasks</small>
+              <small>db.Todos</small>
             </div>
             <div class="ef-flow__arrow" aria-hidden="true">
               →
@@ -194,7 +194,7 @@ public async Task<IActionResult> Delete(int id)
             <div class="ef-flow__database">
               SQLite
               <br />
-              <small>Tasks テーブル</small>
+              <small>Todos テーブル</small>
             </div>
           </figure>
 
@@ -217,15 +217,11 @@ public async Task<IActionResult> Delete(int id)
         <section id="model">
           <p class="section-label">DATA MODEL</p>
           <h2>Entity と DbContext</h2>
-          <p>
-            Entity はデータベースへ保存するデータを表すクラスです。ここでは <code>Task</code> と
-            .NET の <code>Task</code> 型が混同しないよう、Entity の名前を <code>TaskItem</code>{' '}
-            とします
-          </p>
+          <p>Entity はデータベースへ保存するデータを表すクラスです</p>
 
-          <div class="entity-map" aria-label="TaskItem Entity と Tasks テーブルの対応">
+          <div class="entity-map" aria-label="Todo Entity と Todos テーブルの対応">
             <div class="entity-map__class">
-              <strong>TaskItem</strong>
+              <strong>Todo</strong>
               <span>Id : int</span>
               <span>Title : string</span>
               <span>Description : string?</span>
@@ -235,7 +231,7 @@ public async Task<IActionResult> Delete(int id)
               ⇄
             </div>
             <div class="entity-map__table">
-              <strong>Tasks テーブル</strong>
+              <strong>Todos テーブル</strong>
               <span>Id</span>
               <span>Title</span>
               <span>Description</span>
@@ -244,12 +240,12 @@ public async Task<IActionResult> Delete(int id)
           </div>
 
           <div class="code-block">
-            <Code code={taskItem} lang="csharp" theme="github-dark" />
+            <Code code={todo} lang="csharp" theme="github-dark" />
           </div>
 
           <p>
             <code>DbContext</code> は Entity とデータベースの橋渡しをするクラスです。
-            <code>DbSet&lt;TaskItem&gt;</code> の <code>Tasks</code> を通して、Tasks
+            <code>DbSet&lt;Todo&gt;</code> の <code>Todos</code> を通して、Todos
             テーブルへの問い合わせや保存を行います
           </p>
           <div class="code-block">
@@ -272,8 +268,8 @@ public async Task<IActionResult> Delete(int id)
             接続文字列は、アプリケーションがどのデータベースへ接続するかを表す設定値です。
             <code>ConnectionStrings</code> は接続文字列をまとめる慣例的な設定セクションで、
             <code>DefaultConnection</code> は <code>Program.cs</code>{' '}
-            から指定している名前です。SQLite では <code>Data Source=taskmanager.db</code>{' '}
-            が、実行ディレクトリの <code>taskmanager.db</code>{' '}
+            から指定している名前です。SQLite では <code>Data Source=todomanager.db</code>{' '}
+            が、実行ディレクトリの <code>todomanager.db</code>{' '}
             ファイルをデータベースとして使うことを表します
           </p>
         </section>
@@ -290,7 +286,7 @@ public async Task<IActionResult> Delete(int id)
             <figcaption id="migration-flow-caption">
               モデル変更をデータベースへ反映する流れ
             </figcaption>
-            <div>TaskItem を変更</div>
+            <div>Todo を変更</div>
             <span aria-hidden="true">→</span>
             <div>Migrations ファイルを生成</div>
             <span aria-hidden="true">→</span>
@@ -310,7 +306,7 @@ public async Task<IActionResult> Delete(int id)
             <li>
               <span>02</span>
               <div>
-                <code>dotnet ef database update</code> で SQLite ファイルと Tasks テーブルを作ります
+                <code>dotnet ef database update</code> で SQLite ファイルと Todos テーブルを作ります
               </div>
             </li>
           </ol>
@@ -326,13 +322,13 @@ public async Task<IActionResult> Delete(int id)
 
         <section id="crud">
           <p class="section-label">CRUD</p>
-          <h2>タスクの CRUD を実装する</h2>
+          <h2>TODO の CRUD を実装する</h2>
           <p>
             CRUD は Create、Read、Update、Delete の略です。第4章の URL
             設計と第6章のフォーム・検証を組み合わせ、保存処理だけを Entity Framework Core に任せます
           </p>
 
-          <div class="crud-table" role="region" aria-label="タスクの CRUD 画面と操作">
+          <div class="crud-table" role="region" aria-label="TODO の CRUD 画面と操作">
             <div class="crud-table__header">
               <span>操作</span>
               <span>HTTP</span>
@@ -342,26 +338,26 @@ public async Task<IActionResult> Delete(int id)
             <div>
               <span>一覧・詳細を読む</span>
               <b>GET</b>
-              <code>/tasks</code>
-              <code>Tasks.ToListAsync()</code>
+              <code>/todos</code>
+              <code>Todos.ToListAsync()</code>
             </div>
             <div>
-              <span>タスクを作成</span>
+              <span>TODO を作成</span>
               <b>POST</b>
-              <code>/tasks</code>
-              <code>Tasks.Add()</code>
+              <code>/todos</code>
+              <code>Todos.Add()</code>
             </div>
             <div>
-              <span>タスクを編集</span>
+              <span>TODO を編集</span>
               <b>POST</b>
-              <code>/tasks/12/edit</code>
+              <code>/todos/12/edit</code>
               <code>SaveChangesAsync()</code>
             </div>
             <div>
-              <span>タスクを削除</span>
+              <span>TODO を削除</span>
               <b>POST</b>
-              <code>/tasks/12/delete</code>
-              <code>Tasks.Remove()</code>
+              <code>/todos/12/delete</code>
+              <code>Todos.Remove()</code>
             </div>
           </div>
 
