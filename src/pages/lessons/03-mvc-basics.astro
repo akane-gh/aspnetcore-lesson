@@ -1,0 +1,586 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['structure', 'プロジェクトの構成'],
+  ['mvc', 'MVC の役割'],
+  ['flow', 'Controller から View を返す'],
+  ['first-page', '最初の画面を追加する'],
+];
+
+const projectTree = `TaskManager/
+├── Controllers/
+│   └── HomeController.cs
+├── Models/
+├── Views/
+│   ├── Home/
+│   │   └── Index.cshtml
+│   └── Shared/
+├── wwwroot/
+├── Program.cs
+└── appsettings.json`;
+
+const tasksController = `using Microsoft.AspNetCore.Mvc;
+
+namespace TaskManager.Controllers;
+
+public class TasksController : Controller
+{
+    public IActionResult Index()
+    {
+        return View();
+    }
+}`;
+
+const tasksView = `@{
+    ViewData["Title"] = "タスク";
+}
+
+<h1>タスク</h1>
+<p>タスク管理をここから始めます</p>`;
+---
+
+<Layout
+  title="第3章 ASP.NET Core MVC の基本構成 | ASP.NET Lesson"
+  description="ASP.NET Core MVC プロジェクトのフォルダー構成と、Model、View、Controller の役割を学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 03 <span>/ 10</span>
+        </p>
+        <h1>
+          ASP.NET Core MVC の<br />
+          基本構成
+        </h1>
+        <p class="lead">
+          プロジェクトの中を見渡し、Model、View、Controller が画面を返すまでの役割を理解します
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>MVC プロジェクトの主要なフォルダーとファイル</li>
+            <li>Model、View、Controller のそれぞれの責務</li>
+            <li>Controller が View を選び、HTML を返す流れ</li>
+            <li>タスク画面を追加する最初の手順</li>
+          </ul>
+        </section>
+
+        <section id="structure">
+          <p class="section-label">STRUCTURE</p>
+          <h2>プロジェクトの構成</h2>
+          <p>
+            第2章で作成した MVC
+            テンプレートには、最初から役割ごとのフォルダーがあります。すべてを覚える必要はありません。まずは{' '}
+            <code>Controllers</code>、<code>Models</code>、<code>Views</code> の3つを見つけましょう
+          </p>
+
+          <div class="code-block">
+            <Code code={projectTree} lang="text" theme="github-dark" />
+          </div>
+
+          <div class="lesson-card-grid" role="list">
+            <div role="listitem">
+              <h3>Controllers</h3>
+              <p>ブラウザーからの要求を受け取り、処理の流れと返す結果を決めます</p>
+            </div>
+            <div role="listitem">
+              <h3>Models</h3>
+              <p>タスクなどのデータと、アプリケーションのルールを表します</p>
+            </div>
+            <div role="listitem">
+              <h3>Views</h3>
+              <p>Razor を使い、利用者に見せる HTML を作ります</p>
+            </div>
+            <div role="listitem">
+              <h3>wwwroot</h3>
+              <p>CSS、JavaScript、画像など、ブラウザーへそのまま配信するファイルを置きます</p>
+            </div>
+          </div>
+
+          <aside class="note">
+            <h3>Program.cs の役割</h3>
+            <p>
+              <code>Program.cs</code> はアプリケーションの開始地点です。MVC を使う設定や、HTTP
+              リクエストを処理する仕組みをここで組み立てます。詳しくは第8章で扱います
+            </p>
+          </aside>
+        </section>
+
+        <section id="mvc">
+          <p class="section-label">RESPONSIBILITY</p>
+          <h2>MVC の役割</h2>
+          <p>
+            MVC は、アプリケーションを Model、View、Controller
+            に分ける考え方です。画面表示、利用者の操作、データやルールを分けることで、変更する場所を判断しやすくなります
+          </p>
+
+          <figure class="mvc-basics-diagram" aria-labelledby="mvc-basics-diagram-caption">
+            <figcaption id="mvc-basics-diagram-caption">MVC の責務と依存する方向</figcaption>
+            <div class="mvc-basics-diagram__controller">
+              <strong>Controller</strong>
+              <span>要求を受け、処理と結果を選ぶ</span>
+            </div>
+            <div class="mvc-basics-diagram__arrows" aria-hidden="true">
+              ↙　↘
+            </div>
+            <div class="mvc-basics-diagram__items">
+              <div>
+                <strong>Model</strong>
+                <span>データとルールを表す</span>
+              </div>
+              <div>
+                <strong>View</strong>
+                <span>HTML を表示する</span>
+              </div>
+            </div>
+            <p>Model は View や Controller に依存しません</p>
+          </figure>
+
+          <dl class="mvc-roles">
+            <div>
+              <dt>Model</dt>
+              <dd>タスクの名前や完了状態など、アプリケーションが扱うデータとルールを表します</dd>
+            </div>
+            <div>
+              <dt>View</dt>
+              <dd>Controller から受け取ったデータを使い、Razor で HTML を生成します</dd>
+            </div>
+            <div>
+              <dt>Controller</dt>
+              <dd>要求を受け、必要なら Model を使い、表示する View を選びます</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section id="flow">
+          <p class="section-label">FLOW</p>
+          <h2>Controller から View を返す</h2>
+          <p>
+            ブラウザーからの要求は、Web サーバー上の Controller
+            のアクションメソッドへ届きます。Controller 名とアクション名は、要求を受け取る場所と View
+            を探す場所を決めるために重要です
+          </p>
+          <p>
+            以下の図では、<code>TasksController</code> の <code>Index</code> アクションを例にします
+          </p>
+
+          <figure class="request-flow" aria-labelledby="request-flow-caption">
+            <figcaption id="request-flow-caption">要求から HTML 応答まで</figcaption>
+            <div class="request-flow__scroll">
+              <div class="request-flow__canvas">
+                <svg viewBox="0 0 760 410" aria-hidden="true">
+                  <defs>
+                    <marker
+                      id="request-flow-arrow"
+                      markerWidth="8"
+                      markerHeight="8"
+                      refX="6"
+                      refY="4"
+                      orient="auto"
+                    >
+                      <path d="M 0 0 L 8 4 L 0 8 z" />
+                    </marker>
+                  </defs>
+                  <path
+                    class="request-flow__line"
+                    d="M 155 180 H 288"
+                    marker-end="url(#request-flow-arrow)"
+                  />
+                  <path
+                    class="request-flow__line"
+                    d="M 426 155 H 538"
+                    marker-start="url(#request-flow-arrow)"
+                    marker-end="url(#request-flow-arrow)"
+                  />
+                  <path
+                    class="request-flow__line"
+                    d="M 356 212 V 268"
+                    marker-end="url(#request-flow-arrow)"
+                  />
+                  <path
+                    class="request-flow__line"
+                    d="M 288 322 H 155"
+                    marker-end="url(#request-flow-arrow)"
+                  />
+                </svg>
+                <div class="request-flow__server-label">WEB SERVER</div>
+                <div class="request-flow__node request-flow__node--browser">ブラウザー</div>
+                <div class="request-flow__node request-flow__node--controller">
+                  <strong>TasksController</strong>
+                  <small>Controller 名</small>
+                  <b>Index</b>
+                  <small>Action 名</small>
+                </div>
+                <div class="request-flow__node request-flow__node--model">
+                  <strong>Model</strong>
+                  <small>データとルール</small>
+                </div>
+                <div class="request-flow__node request-flow__node--view">
+                  <strong>Views/Tasks/Index.cshtml</strong>
+                  <small>View と Razor</small>
+                </div>
+                <span class="request-flow__label request-flow__label--request">
+                  HTTP リクエスト
+                </span>
+                <span class="request-flow__label request-flow__label--model">
+                  データの取得・更新
+                </span>
+                <span class="request-flow__label request-flow__label--view">return View()</span>
+                <span class="request-flow__label request-flow__label--html">HTML 応答</span>
+              </div>
+            </div>
+          </figure>
+
+          <aside class="note">
+            <h3>名前がつながる慣例</h3>
+            <p>
+              慣例ルーティングでは <code>/Tasks/Index</code> の <code>Tasks</code> が{' '}
+              <code>TasksController</code>、<code>Index</code> が <code>Index</code>{' '}
+              アクションを表します。<code>return View()</code> は、まず{' '}
+              <code>Views/Tasks/Index.cshtml</code> を探します。名前を変えると URL や View
+              の配置も合わせて見直す必要があります
+            </p>
+          </aside>
+        </section>
+
+        <section id="first-page">
+          <p class="section-label">FIRST PAGE</p>
+          <h2>最初の画面を追加する</h2>
+          <p>
+            タスク管理アプリケーションの入口として、タスク一覧用の Controller と View
+            を追加します。この時点ではデータベースを使わず、画面を表示するところまでを確認します
+          </p>
+
+          <h3 class="subsection-heading">1. Controller を追加する</h3>
+          <p>
+            <code>Controllers/TasksController.cs</code> を作成し、次のコードを書きます
+          </p>
+          <div class="code-block">
+            <Code code={tasksController} lang="csharp" theme="github-dark" />
+          </div>
+
+          <h3 class="subsection-heading">2. View を追加する</h3>
+          <p>
+            <code>Views/Tasks/Index.cshtml</code> を作成し、次の内容を書きます。
+            <code>ViewData</code> と Razor の詳しい書き方は第5章で扱います
+          </p>
+          <div class="code-block">
+            <Code code={tasksView} lang="html" theme="github-dark" />
+          </div>
+
+          <p>
+            アプリケーションを起動し、<code>/Tasks</code> または <code>/Tasks/Index</code>{' '}
+            を開いて画面が表示されることを確認してください。URL と Controller
+            の対応は次章で詳しく扱います
+          </p>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では URL、Controller、アクションメソッドの対応を確認し、RESTful
+            な画面遷移を設計します
+          </p>
+          <span>CHAPTER 04 — ルーティングとコントローラー</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/overview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC の概要
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/views/overview?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC のビュー
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/controllers/actions?view=aspnetcore-7.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC でコントローラーで要求を処理する
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .mvc-basics-diagram {
+    display: grid;
+    justify-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .mvc-basics-diagram figcaption,
+  .request-flow figcaption {
+    width: 100%;
+    margin-bottom: 18px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .mvc-basics-diagram__controller,
+  .mvc-basics-diagram__items > div {
+    display: grid;
+    min-width: 176px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .mvc-basics-diagram__controller {
+    background: #fff1f2;
+  }
+
+  .mvc-basics-diagram strong {
+    font-size: 1rem;
+  }
+
+  .mvc-basics-diagram span,
+  .mvc-basics-diagram p {
+    margin: 5px 0 0;
+    color: #9f1239;
+    font-size: 0.72rem;
+  }
+
+  .mvc-basics-diagram__arrows {
+    padding: 10px 0;
+    color: #e11d48;
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .mvc-basics-diagram__items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .mvc-basics-diagram__items > div:last-child {
+    background: #fff8f8;
+  }
+
+  .mvc-roles {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  .mvc-roles div {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.3fr) 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid #f0d8dc;
+  }
+
+  .mvc-roles div:last-child {
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .mvc-roles dt {
+    color: #881337;
+    font-weight: 800;
+  }
+
+  .mvc-roles dd {
+    margin: 0;
+    color: #70565e;
+    line-height: 1.7;
+  }
+
+  .request-flow {
+    margin: 32px 0;
+  }
+
+  .request-flow__scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .request-flow__canvas {
+    position: relative;
+    min-width: 720px;
+    height: 410px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .request-flow__canvas::before {
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    bottom: 28px;
+    left: 190px;
+    border: 1px dashed #fda4af;
+    content: '';
+  }
+
+  .request-flow svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .request-flow__line {
+    fill: none;
+    stroke: #e11d48;
+    stroke-width: 2;
+  }
+
+  .request-flow marker path {
+    fill: #e11d48;
+  }
+
+  .request-flow__server-label {
+    position: absolute;
+    top: 39px;
+    left: 210px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  .request-flow__node {
+    position: absolute;
+    display: grid;
+    min-width: 116px;
+    min-height: 56px;
+    place-content: center;
+    padding: 9px 14px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #881337;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+  }
+
+  .request-flow__node small {
+    color: #9f1239;
+    font-size: 0.64rem;
+    font-weight: 650;
+  }
+
+  .request-flow__node b {
+    margin-top: 7px;
+    color: #500724;
+    font-size: 0.9rem;
+  }
+
+  .request-flow__node--browser {
+    top: 28px;
+    left: 28px;
+    min-height: 354px;
+  }
+
+  .request-flow__node--controller {
+    top: 125px;
+    left: 288px;
+  }
+
+  .request-flow__node--model {
+    top: 118px;
+    left: 538px;
+  }
+
+  .request-flow__node--view {
+    top: 268px;
+    left: 288px;
+    width: 180px;
+  }
+
+  .request-flow__node--view strong {
+    overflow-wrap: anywhere;
+    font-size: 0.7rem;
+  }
+
+  .request-flow__label {
+    position: absolute;
+    padding: 2px 5px;
+    background: #fff;
+    color: #9f1239;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .request-flow__label--request {
+    top: 155px;
+    left: 188px;
+  }
+
+  .request-flow__label--model {
+    top: 132px;
+    left: 430px;
+  }
+
+  .request-flow__label--view {
+    top: 228px;
+    left: 372px;
+  }
+
+  .request-flow__label--html {
+    top: 296px;
+    left: 195px;
+  }
+
+  @media (max-width: 620px) {
+    .mvc-basics-diagram__items {
+      grid-template-columns: 1fr;
+    }
+
+    .mvc-roles div {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+</style>
