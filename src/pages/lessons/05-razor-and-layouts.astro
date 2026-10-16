@@ -1,0 +1,652 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['razor', 'Razor 構文の基本'],
+  ['view-data', 'ViewData と ViewModel'],
+  ['layout', 'レイアウトを使う'],
+  ['partial', '部分ビューを使う'],
+];
+
+const razorBasics = `@{
+    var remainingCount = 2;
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (remainingCount > 0)
+{
+    <p>未完了のタスクは @remainingCount 件です</p>
+}`;
+
+const viewModel = `namespace TaskManager.Models;
+
+public class TasksIndexViewModel
+{
+    public required string PageTitle { get; init; }
+    public required IReadOnlyList<TaskListItemViewModel> Tasks { get; init; }
+}
+
+public class TaskListItemViewModel
+{
+    public int Id { get; init; }
+    public required string Title { get; init; }
+    public bool IsCompleted { get; init; }
+}`;
+
+const controllerWithViewModel = `public IActionResult Index()
+{
+    var model = new TasksIndexViewModel
+    {
+        PageTitle = "タスク一覧",
+        Tasks =
+        [
+            new() { Id = 1, Title = "Razor を読む", IsCompleted = true },
+            new() { Id = 2, Title = "詳細画面を作る", IsCompleted = false },
+        ],
+    };
+
+    return View(model);
+}`;
+
+const viewDataExample = `// Controller
+public IActionResult Index()
+{
+    ViewData["Title"] = "タスク一覧";
+    return View();
+}
+
+<!-- View: Index.cshtml -->
+<h1>@ViewData["Title"]</h1>`;
+
+const viewStart = `@{
+    Layout = "_Layout";
+}`;
+
+const layoutCode = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - TaskManager</title>
+</head>
+<body>
+    <header>TaskManager</header>
+    <main>
+        @RenderBody()
+    </main>
+</body>
+</html>`;
+
+const partialCode = `@model TaskListItemViewModel
+
+<article class="task-summary">
+    <h2>@Model.Title</h2>
+    @if (Model.IsCompleted)
+    {
+        <span>完了</span>
+    }
+    <!-- Details Action へのリンク -->
+    <a asp-action="Details" asp-route-id="@Model.Id">詳細を見る</a>
+</article>`;
+
+const indexView = `@model TasksIndexViewModel
+
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<h1>@Model.PageTitle</h1>
+
+@foreach (var task in Model.Tasks)
+{
+    <!-- 部分ビュー _TaskSummary.cshtml を呼び出す -->
+    <partial name="_TaskSummary" model="task" />
+}`;
+
+const detailsView = `@model TaskListItemViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<h1>@Model.Title</h1>
+<p>状態: @(Model.IsCompleted ? "完了" : "未完了")</p>
+<a asp-action="Index">一覧へ戻る</a>`;
+---
+
+<Layout
+  title="第5章 Razor とレイアウト | ASP.NET Lesson"
+  description="ASP.NET Core MVC の Razor 構文、ViewData と ViewModel、共通レイアウトと部分ビューを学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 05 <span>/ 10</span>
+        </p>
+        <h1>
+          Razor と<br />
+          レイアウト
+        </h1>
+        <p class="lead">C# と HTML を組み合わせ、共通部分を保ちながらタスク画面を組み立てます</p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>Razor で C# の値を HTML に出力する方法</li>
+            <li>ViewData と ViewModel の役割の違い</li>
+            <li>レイアウトと部分ビューで共通部分をまとめる方法</li>
+            <li>タスクの一覧画面と詳細画面を表示する基本</li>
+          </ul>
+        </section>
+
+        <section id="razor">
+          <p class="section-label">RAZOR</p>
+          <h2>Razor 構文の基本</h2>
+          <p>
+            Razor は、<code>.cshtml</code> ファイルの HTML に C# を埋め込むための構文です。
+            <code>@</code> を起点にして値を出力したり、条件分岐や繰り返しを記述したりできます。Razor
+            はサーバーで HTML を組み立ててからブラウザーへ返します
+          </p>
+
+          <div class="code-block">
+            <Code code={razorBasics} lang="html" theme="github-dark" />
+          </div>
+
+          <div class="razor-notes" role="list">
+            <div role="listitem">
+              <code>@ViewData["Title"]</code>
+              <p>式の値を HTML に出力します</p>
+            </div>
+            <div role="listitem">
+              <code>@{`{ ... }`}</code>
+              <p>C# のコードブロックを書きます</p>
+            </div>
+            <div role="listitem">
+              <code>@if (...) {`{ ... }`}</code>
+              <p>条件に応じて HTML を出し分けます</p>
+            </div>
+          </div>
+
+          <aside class="note">
+            <h3>表示に必要な処理だけを書く</h3>
+            <p>
+              View の役割は画面表示です。データの取得や複雑な判断は Controller
+              やサービスへ置き、Razor 内の C# は表示のために必要な範囲へ絞ります
+            </p>
+          </aside>
+
+          <aside class="note">
+            <h3>Razor は HTML を出力するプログラム</h3>
+            <p>
+              見た目は「HTML に C# を埋め込む」構文ですが、概念的には Razor が C# の処理で HTML
+              を出力していると捉えると理解しやすくなります。Razor は実行時にブラウザーへ送る HTML
+              を組み立てる、サーバー側のプログラムです
+            </p>
+          </aside>
+        </section>
+
+        <section id="view-data">
+          <p class="section-label">DATA FOR VIEWS</p>
+          <h2>ViewData と ViewModel</h2>
+          <p>
+            Controller から View へデータを渡す方法には、<code>ViewData</code> と ViewModel
+            があります。少量の補助情報には <code>ViewData</code>、画面の中心となるデータには型を持つ
+            ViewModel を使うと、意図を読み取りやすくできます
+          </p>
+
+          <div class="data-flow" aria-label="Controller から View へデータを渡す方法">
+            <div class="data-flow__controller">Controller</div>
+            <div class="data-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="data-flow__item">
+              <strong>ViewData</strong>
+              <span>タイトルなど少量の補助情報</span>
+            </div>
+            <div class="data-flow__item data-flow__item--model">
+              <strong>ViewModel</strong>
+              <span>画面に必要なデータを型で定義</span>
+            </div>
+            <div class="data-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="data-flow__view">View</div>
+          </div>
+
+          <h3 class="subsection-heading">ViewData は小さな情報に使う</h3>
+          <p>
+            <code>ViewData</code> は文字列のキーで値を保持する辞書です。レイアウトの{' '}
+            <code>&lt;title&gt;</code>{' '}
+            に渡すページタイトルのように、少量の値に向いています。型チェックはされないため、複雑な画面データを入れすぎないようにします
+          </p>
+
+          <div class="code-block">
+            <Code code={viewDataExample} lang="html" theme="github-dark" />
+          </div>
+
+          <p>
+            Controller で <code>ViewData["Title"]</code> に設定した値を、View 側では{' '}
+            <code>@ViewData["Title"]</code>{' '}
+            と書いて出力します。キーの打ち間違いはコンパイル時に検出されないため、名前を統一して使います
+          </p>
+
+          <h3 class="subsection-heading">ViewModel は画面のデータを表す</h3>
+          <p>
+            ViewModel は、特定の画面に必要な値をまとめたクラスです。データベースの Entity をそのまま
+            View に渡すのではなく、表示に必要な項目だけを定義します
+          </p>
+
+          <div class="code-block">
+            <Code code={viewModel} lang="csharp" theme="github-dark" />
+          </div>
+
+          <div class="code-block">
+            <Code code={controllerWithViewModel} lang="csharp" theme="github-dark" />
+          </div>
+        </section>
+
+        <section id="layout">
+          <p class="section-label">LAYOUT</p>
+          <h2>レイアウトを使う</h2>
+          <p>
+            ヘッダー、ナビゲーション、フッターのように複数画面で共通する部分は、レイアウトにまとめます。各
+            View
+            はページごとに異なる本文だけを担当するため、共通部分を一度直せば全画面へ反映できます
+          </p>
+
+          <figure class="layout-diagram" aria-labelledby="layout-diagram-caption">
+            <figcaption id="layout-diagram-caption">レイアウトと各 View の関係</figcaption>
+            <div class="layout-diagram__start">
+              <strong>_ViewStart.cshtml</strong>
+              <span>すべてのフル View にレイアウトを指定</span>
+            </div>
+            <div class="layout-diagram__arrow" aria-hidden="true">
+              ↓
+            </div>
+            <div class="layout-diagram__layout">
+              <strong>_Layout.cshtml</strong>
+              <span>header</span>
+              <span class="layout-diagram__body">@RenderBody()</span>
+              <span>footer</span>
+            </div>
+            <div class="layout-diagram__arrow" aria-hidden="true">
+              ↑
+            </div>
+            <div class="layout-diagram__views">
+              <span>Index.cshtml</span>
+              <span>Details.cshtml</span>
+            </div>
+          </figure>
+
+          <p>
+            <code>Views/_ViewStart.cshtml</code> は、各フル View の前に実行されます。ここで{' '}
+            <code>_Layout</code> を指定すると、<code>Views/Shared/_Layout.cshtml</code>{' '}
+            が各画面の共通の外枠になります
+          </p>
+
+          <div class="code-block">
+            <Code code={viewStart} lang="html" theme="github-dark" />
+          </div>
+
+          <div class="code-block">
+            <Code code={layoutCode} lang="html" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>@RenderBody() は本文の差し込み位置</h3>
+            <p>
+              <code>@RenderBody()</code> の位置に、<code>Index.cshtml</code> や{' '}
+              <code>Details.cshtml</code> など、現在の View の内容が差し込まれます
+            </p>
+          </aside>
+        </section>
+
+        <section id="partial">
+          <p class="section-label">PARTIAL VIEW</p>
+          <h2>部分ビューを使う</h2>
+          <p>
+            部分ビューは、ページの一部分を別ファイルへ切り出す仕組みです。タスク一覧の各行のように、繰り返し表示するまとまりに使います。ファイル名の先頭に{' '}
+            <code>_</code> を付けるのが慣例です
+          </p>
+
+          <div class="partial-diagram" aria-label="部分ビューの再利用">
+            <div class="partial-diagram__view">
+              <strong>Index.cshtml</strong>
+              <span>タスクごとに呼び出す</span>
+            </div>
+            <div class="partial-diagram__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="partial-diagram__partial">
+              <strong>_TaskSummary.cshtml</strong>
+              <span>1件分の表示を再利用</span>
+            </div>
+            <div class="partial-diagram__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="partial-diagram__result">
+              <span>タスク A</span>
+              <span>タスク B</span>
+              <span>タスク C</span>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <Code code={partialCode} lang="html" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>_TaskSummary.cshtml</code> の先頭に <code>@model</code>{' '}
+            を書くと、部分ビューが受け取る型を指定できます。呼び出し側から渡された1件のタスクを{' '}
+            <code>Model</code> として表示します
+          </p>
+
+          <h3 class="subsection-heading">一覧画面と詳細画面を作る</h3>
+          <p>
+            タスク一覧には複数のタスクを持つ <code>TasksIndexViewModel</code>{' '}
+            を渡し、各タスクは部分ビューで表示します。詳細画面には1件の{' '}
+            <code>TaskListItemViewModel</code> を渡します
+          </p>
+
+          <h3 class="subsection-heading screen-heading">
+            Views/Tasks/Index.cshtml
+            <span>部分ビューを使う側</span>
+          </h3>
+          <div class="code-block">
+            <Code code={indexView} lang="html" theme="github-dark" />
+          </div>
+
+          <h3 class="subsection-heading screen-heading">
+            Views/Tasks/Details.cshtml
+            <span>部分ビューからクリックで遷移する先</span>
+          </h3>
+          <div class="code-block">
+            <Code code={detailsView} lang="html" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>まだデータベースは使わない</h3>
+            <p>
+              この章のデータは Controller 内で用意した例です。第7章で Entity Framework Core
+              とデータベースを導入し、実際に保存したタスクを一覧と詳細へ表示します
+            </p>
+          </aside>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章ではフォームから入力を受け取り、モデルバインディングと検証で安全に扱う方法を学びます
+          </p>
+          <span>CHAPTER 06 — フォームと入力値の検証</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/views/overview?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC のビュー
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/views/layout?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core のレイアウト
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/views/razor?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core の Razor 構文リファレンス
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .razor-notes,
+  .other-methods {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 28px 0;
+  }
+
+  .razor-notes > div {
+    padding: 20px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .razor-notes p {
+    margin: 12px 0 0;
+    color: #70565e;
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+
+  .data-flow {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    gap: 12px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .data-flow__controller,
+  .data-flow__view,
+  .data-flow__item {
+    display: grid;
+    min-height: 90px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .data-flow__controller,
+  .data-flow__view {
+    background: #fff1f2;
+    font-weight: 800;
+  }
+
+  .data-flow__item {
+    background: #fff8f8;
+  }
+
+  .data-flow__item--model {
+    border-color: #fda4af;
+    background: #ffe4e6;
+  }
+
+  .data-flow__item strong {
+    font-size: 0.86rem;
+  }
+
+  .data-flow__item span {
+    margin-top: 7px;
+    color: #9f1239;
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  .data-flow__arrow {
+    color: #e11d48;
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+
+  .layout-diagram {
+    display: grid;
+    justify-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .layout-diagram figcaption {
+    justify-self: start;
+    width: 100%;
+    margin-bottom: 20px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .layout-diagram__start,
+  .layout-diagram__layout,
+  .layout-diagram__views {
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    width: min(100%, 420px);
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .layout-diagram__start {
+    background: #fff8f8;
+  }
+
+  .layout-diagram__layout {
+    background: #fff1f2;
+  }
+
+  .layout-diagram__layout > span {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #fecdd3;
+    background: #fff;
+    font-size: 0.75rem;
+  }
+
+  .layout-diagram__layout .layout-diagram__body {
+    padding: 12px;
+    border-color: #fda4af;
+    background: #ffe4e6;
+    font-weight: 800;
+  }
+
+  .layout-diagram__views {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 420px);
+    background: #fff8f8;
+    font-size: 0.78rem;
+  }
+
+  .layout-diagram__arrow,
+  .partial-diagram__arrow {
+    padding: 7px 0;
+    color: #e11d48;
+    font-size: 1.35rem;
+    font-weight: 800;
+  }
+
+  .partial-diagram {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .partial-diagram__view,
+  .partial-diagram__partial,
+  .partial-diagram__result {
+    display: grid;
+    gap: 8px;
+    min-height: 106px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .partial-diagram__view {
+    background: #fff8f8;
+  }
+
+  .partial-diagram__partial {
+    background: #fff1f2;
+  }
+
+  .partial-diagram__result {
+    background: #ffe4e6;
+    font-size: 0.8rem;
+  }
+
+  .screen-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: baseline;
+  }
+
+  .screen-heading span {
+    color: #9f1239;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  @media (max-width: 760px) {
+    .razor-notes,
+    .data-flow,
+    .partial-diagram {
+      grid-template-columns: 1fr;
+    }
+
+    .data-flow__arrow,
+    .partial-diagram__arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+  }
+</style>
