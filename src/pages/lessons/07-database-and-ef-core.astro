@@ -1,0 +1,572 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['ef-core', 'Entity Framework Core とは'],
+  ['model', 'Entity と DbContext'],
+  ['migration', 'マイグレーション'],
+  ['crud', 'タスクの CRUD を実装する'],
+];
+
+const packages = `dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet tool install --global dotnet-ef`;
+
+const taskItem = `namespace TaskManager.Models;
+
+public class TaskItem
+{
+    public int Id { get; set; }
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    public bool IsCompleted { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}`;
+
+const dbContext = `using Microsoft.EntityFrameworkCore;
+using TaskManager.Models;
+
+namespace TaskManager.Data;
+
+public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : DbContext(options)
+{
+    public DbSet<TaskItem> Tasks => Set<TaskItem>();
+}`;
+
+const registration = `// Program.cs
+using Microsoft.EntityFrameworkCore;
+using TaskManager.Data;
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection")));`;
+
+const connectionString = `{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=taskmanager.db"
+  }
+}`;
+
+const migrationCommands = `dotnet ef migrations add InitialCreate
+dotnet ef database update`;
+
+const listAndCreate = `public class TasksController(AppDbContext db) : Controller
+{
+    [HttpGet("tasks")]
+    public async Task<IActionResult> Index()
+    {
+        var tasks = await db.Tasks
+            .OrderBy(task => task.IsCompleted)
+            .ThenByDescending(task => task.CreatedAt)
+            .ToListAsync();
+
+        return View(tasks);
+    }
+
+    [HttpPost("tasks")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateTaskInputModel input)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View("New", input);
+        }
+
+        db.Tasks.Add(new TaskItem
+        {
+            Title = input.Title,
+            Description = input.Description,
+        });
+        await db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Index));
+    }
+}`;
+
+const editAndDelete = `[HttpPost("tasks/{id:int}/edit")]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Edit(int id, EditTaskInputModel input)
+{
+    if (!ModelState.IsValid) return View(input);
+
+    var task = await db.Tasks.FindAsync(id);
+    if (task is null) return NotFound();
+
+    task.Title = input.Title;
+    task.Description = input.Description;
+    task.IsCompleted = input.IsCompleted;
+    await db.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+
+[HttpPost("tasks/{id:int}/delete")]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Delete(int id)
+{
+    var task = await db.Tasks.FindAsync(id);
+    if (task is not null)
+    {
+        db.Tasks.Remove(task);
+        await db.SaveChangesAsync();
+    }
+
+    return RedirectToAction(nameof(Index));
+}`;
+---
+
+<Layout
+  title="第7章 データベースと Entity Framework Core | ASP.NET Lesson"
+  description="ASP.NET Core MVC で Entity Framework Core と SQLite を使い、タスクを CRUD する基本を学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 07 <span>/ 10</span>
+        </p>
+        <h1>
+          データベースと
+          <br />
+          Entity Framework Core
+        </h1>
+        <p class="lead">入力したタスクを SQLite に保存し、一覧、編集、削除できるようにします</p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>Entity Framework Core と SQLite の役割</li>
+            <li>Entity と DbContext の定義</li>
+            <li>マイグレーションでデータベースを更新する手順</li>
+            <li>タスクの作成、一覧、編集、削除を行う基本</li>
+          </ul>
+        </section>
+
+        <section id="ef-core">
+          <p class="section-label">EF CORE</p>
+          <h2>Entity Framework Core とは</h2>
+          <p>
+            Entity Framework Core は、C# のオブジェクトとリレーショナルデータベースを対応付ける ORM
+            です。SQL を直接組み立てる代わりに、<code>DbContext</code> と LINQ
+            を使ってデータを読み書きできます
+          </p>
+
+          <figure class="ef-flow" aria-labelledby="ef-flow-caption">
+            <figcaption id="ef-flow-caption">タスク一覧を表示するときのデータの流れ</figcaption>
+            <div class="ef-flow__entity">
+              TaskItem
+              <br />
+              <small>Model / Entity</small>
+            </div>
+            <div class="ef-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="ef-flow__context">
+              AppDbContext
+              <br />
+              <small>db.Tasks</small>
+            </div>
+            <div class="ef-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="ef-flow__database">
+              SQLite
+              <br />
+              <small>Tasks テーブル</small>
+            </div>
+          </figure>
+
+          <p>
+            この章では、ファイル1つで扱える SQLite
+            を開発用のデータベースに使います。本番環境では、要件に応じて SQL Server、PostgreSQL
+            など別のデータベースプロバイダーを選べます
+          </p>
+
+          <h3 class="subsection-heading">必要なパッケージとツール</h3>
+          <div class="code-block">
+            <Code code={packages} lang="bash" theme="github-dark" />
+          </div>
+          <p>
+            パッケージと <code>dotnet-ef</code> は、利用する .NET と EF Core
+            のメジャーバージョンをそろえます
+          </p>
+        </section>
+
+        <section id="model">
+          <p class="section-label">DATA MODEL</p>
+          <h2>Entity と DbContext</h2>
+          <p>
+            Entity はデータベースへ保存するデータを表すクラスです。ここでは <code>Task</code> と
+            .NET の <code>Task</code> 型が混同しないよう、Entity の名前を <code>TaskItem</code>{' '}
+            とします
+          </p>
+
+          <div class="entity-map" aria-label="TaskItem Entity と Tasks テーブルの対応">
+            <div class="entity-map__class">
+              <strong>TaskItem</strong>
+              <span>Id : int</span>
+              <span>Title : string</span>
+              <span>Description : string?</span>
+              <span>IsCompleted : bool</span>
+            </div>
+            <div class="entity-map__arrow" aria-hidden="true">
+              ⇄
+            </div>
+            <div class="entity-map__table">
+              <strong>Tasks テーブル</strong>
+              <span>Id</span>
+              <span>Title</span>
+              <span>Description</span>
+              <span>IsCompleted</span>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <Code code={taskItem} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>DbContext</code> は Entity とデータベースの橋渡しをするクラスです。
+            <code>DbSet&lt;TaskItem&gt;</code> の <code>Tasks</code> を通して、Tasks
+            テーブルへの問い合わせや保存を行います
+          </p>
+          <div class="code-block">
+            <Code code={dbContext} lang="csharp" theme="github-dark" />
+          </div>
+
+          <h3 class="subsection-heading">DbContext を DI コンテナーへ登録する</h3>
+          <p>
+            <code>Program.cs</code> で <code>AppDbContext</code> を登録すると、Controller
+            のコンストラクターで受け取れるようになります。接続文字列は <code>appsettings.json</code>{' '}
+            に置きます
+          </p>
+          <div class="code-block">
+            <Code code={registration} lang="csharp" theme="github-dark" />
+          </div>
+          <div class="code-block">
+            <Code code={connectionString} lang="json" theme="github-dark" />
+          </div>
+          <p>
+            接続文字列は、アプリケーションがどのデータベースへ接続するかを表す設定値です。
+            <code>ConnectionStrings</code> は接続文字列をまとめる慣例的な設定セクションで、
+            <code>DefaultConnection</code> は <code>Program.cs</code>{' '}
+            から指定している名前です。SQLite では <code>Data Source=taskmanager.db</code>{' '}
+            が、実行ディレクトリの <code>taskmanager.db</code>{' '}
+            ファイルをデータベースとして使うことを表します
+          </p>
+        </section>
+
+        <section id="migration">
+          <p class="section-label">MIGRATIONS</p>
+          <h2>マイグレーションでデータベースを更新する</h2>
+          <p>
+            マイグレーションは、Entity
+            の変更をデータベースのスキーマ変更として記録する仕組みです。モデルを変えるたびに変更履歴を作り、その履歴をデータベースへ適用します
+          </p>
+
+          <figure class="migration-flow" aria-labelledby="migration-flow-caption">
+            <figcaption id="migration-flow-caption">
+              モデル変更をデータベースへ反映する流れ
+            </figcaption>
+            <div>TaskItem を変更</div>
+            <span aria-hidden="true">→</span>
+            <div>Migrations ファイルを生成</div>
+            <span aria-hidden="true">→</span>
+            <div>データベースへ適用</div>
+          </figure>
+
+          <div class="code-block">
+            <Code code={migrationCommands} lang="bash" theme="github-dark" />
+          </div>
+          <ol class="steps">
+            <li>
+              <span>01</span>
+              <div>
+                <code>dotnet ef migrations add InitialCreate</code> で初回の変更履歴を作ります
+              </div>
+            </li>
+            <li>
+              <span>02</span>
+              <div>
+                <code>dotnet ef database update</code> で SQLite ファイルと Tasks テーブルを作ります
+              </div>
+            </li>
+          </ol>
+
+          <aside class="note">
+            <h3>Migrations はソース管理に含める</h3>
+            <p>
+              マイグレーションはデータベースをどのように変えたかを表すソースコードです。生成された{' '}
+              <code>Migrations</code> フォルダーは Git などで管理します
+            </p>
+          </aside>
+        </section>
+
+        <section id="crud">
+          <p class="section-label">CRUD</p>
+          <h2>タスクの CRUD を実装する</h2>
+          <p>
+            CRUD は Create、Read、Update、Delete の略です。第4章の URL
+            設計と第6章のフォーム・検証を組み合わせ、保存処理だけを Entity Framework Core に任せます
+          </p>
+
+          <div class="crud-table" role="region" aria-label="タスクの CRUD 画面と操作">
+            <div class="crud-table__header">
+              <span>操作</span>
+              <span>HTTP</span>
+              <span>URL</span>
+              <span>DbContext の操作</span>
+            </div>
+            <div>
+              <span>一覧・詳細を読む</span>
+              <b>GET</b>
+              <code>/tasks</code>
+              <code>Tasks.ToListAsync()</code>
+            </div>
+            <div>
+              <span>タスクを作成</span>
+              <b>POST</b>
+              <code>/tasks</code>
+              <code>Tasks.Add()</code>
+            </div>
+            <div>
+              <span>タスクを編集</span>
+              <b>POST</b>
+              <code>/tasks/12/edit</code>
+              <code>SaveChangesAsync()</code>
+            </div>
+            <div>
+              <span>タスクを削除</span>
+              <b>POST</b>
+              <code>/tasks/12/delete</code>
+              <code>Tasks.Remove()</code>
+            </div>
+          </div>
+
+          <h3 class="subsection-heading">一覧と作成</h3>
+          <div class="code-block">
+            <Code code={listAndCreate} lang="csharp" theme="github-dark" />
+          </div>
+          <p>
+            <code>Add</code> やプロパティの変更は、<code>SaveChangesAsync</code>{' '}
+            を呼び出すまでデータベースへ反映されません。読み取り・書き込みを待つ処理には{' '}
+            <code>await</code> を使います
+          </p>
+
+          <h3 class="subsection-heading">編集と削除</h3>
+          <div class="code-block">
+            <Code code={editAndDelete} lang="csharp" theme="github-dark" />
+          </div>
+          <aside class="note">
+            <h3>入力モデルから必要な項目だけをコピーする</h3>
+            <p>
+              編集では、フォームの入力モデルから更新を許可したプロパティだけを Entity
+              へ代入します。この形にすると、フォームにないプロパティまで意図せず更新する問題を避けやすくなります
+            </p>
+          </aside>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では、DbContext
+            を受け取る仕組みを手がかりに、依存性注入、設定、ミドルウェアを理解します
+          </p>
+          <span>CHAPTER 08 — 依存性注入と設定</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/data/ef-mvc/intro?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET MVC Web アプリでの EF Core の概要
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/ef/core/managing-schemas/migrations/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — EF Core の移行の概要
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/data/ef-mvc/crud?view=aspnetcore-8.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET MVC で CRUD を実装する EF Core
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .ef-flow,
+  .migration-flow,
+  .entity-map {
+    display: grid;
+    gap: 14px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+  .ef-flow {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .ef-flow figcaption,
+  .migration-flow figcaption {
+    grid-column: 1 / -1;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .ef-flow > div:not(.ef-flow__arrow),
+  .migration-flow > div {
+    display: grid;
+    min-height: 88px;
+    place-content: center;
+    padding: 14px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+    color: #881337;
+    text-align: center;
+    font-weight: 800;
+  }
+  .ef-flow__context {
+    background: #fff1f2 !important;
+  }
+  .ef-flow__database {
+    background: #ffe4e6 !important;
+  }
+  .ef-flow small {
+    margin-top: 6px;
+    color: #9f1239;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .ef-flow__arrow,
+  .migration-flow > span,
+  .entity-map__arrow {
+    color: #e11d48;
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  .entity-map {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    justify-items: stretch;
+  }
+  .entity-map__class,
+  .entity-map__table {
+    display: grid;
+    gap: 0;
+    border: 1px solid #fecdd3;
+    color: #881337;
+  }
+  .entity-map__class {
+    background: #fff8f8;
+  }
+  .entity-map__table {
+    background: #fff1f2;
+  }
+  .entity-map strong,
+  .entity-map span {
+    padding: 9px 14px;
+    border-bottom: 1px solid #fecdd3;
+  }
+  .entity-map strong {
+    background: #ffe4e6;
+    font-size: 0.88rem;
+    text-align: center;
+  }
+  .entity-map span:last-child {
+    border-bottom: 0;
+  }
+  .migration-flow {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .crud-table {
+    display: grid;
+    margin: 30px 0;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+  .crud-table > div {
+    display: grid;
+    grid-template-columns: minmax(105px, 1fr) 58px minmax(105px, 0.8fr) minmax(150px, 1.2fr);
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0d8dc;
+    color: #70565e;
+    font-size: 0.85rem;
+  }
+  .crud-table > div:last-child {
+    border-bottom: 0;
+  }
+  .crud-table__header {
+    background: #fff1f2;
+    color: #881337 !important;
+    font-size: 0.76rem !important;
+    font-weight: 800;
+  }
+  .crud-table b {
+    width: fit-content;
+    padding: 0.2em 0.42em;
+    background: #fce7f3;
+    color: #9d174d;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.7rem;
+  }
+  @media (max-width: 760px) {
+    .ef-flow,
+    .migration-flow,
+    .entity-map,
+    .crud-table > div {
+      grid-template-columns: 1fr;
+    }
+    .ef-flow__arrow,
+    .migration-flow > span,
+    .entity-map__arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+    .crud-table__header {
+      display: none !important;
+    }
+  }
+</style>
