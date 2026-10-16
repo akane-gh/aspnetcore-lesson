@@ -1,0 +1,669 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['basics', '認証と認可を分けて考える'],
+  ['registration', 'Cookie 認証を登録する'],
+  ['login', 'ログインして Cookie を発行する'],
+  ['authorize', 'ログインが必要な画面を保護する'],
+  ['logout', 'ログアウトする'],
+];
+
+const authenticationRegistration = `// Program.cs
+using Microsoft.AspNetCore.Authentication.Cookies;
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/Denied";
+    });
+
+builder.Services.AddAuthorization();`;
+
+const middlewareOrder = `app.UseRouting();
+
+// 認証を先、認可を後に実行する
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Todos}/{action=Index}/{id?}");`;
+
+const loginInput = `using System.ComponentModel.DataAnnotations;
+
+namespace TodoManager.Models;
+
+public class LoginInputModel
+{
+    [Required]
+    [EmailAddress]
+    [Display(Name = "メールアドレス")]
+    public string Email { get; set; } = "";
+
+    [Required]
+    [DataType(DataType.Password)]
+    [Display(Name = "パスワード")]
+    public string Password { get; set; } = "";
+}`;
+
+const loginAction = `using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+
+[AllowAnonymous]
+public class AccountController : Controller
+{
+    [HttpGet]
+    public IActionResult Login(string? returnUrl)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Login(LoginInputModel input, string? returnUrl)
+    {
+        if (!ModelState.IsValid)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(input);
+        }
+
+        // 学習用の仮の照合
+        if (input.Email != "demo@example.com" || input.Password != "passw0rd")
+        {
+            ModelState.AddModelError("", "メールアドレスまたはパスワードが正しくありません");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(input);
+        }
+
+        var claims = new[] { new Claim(ClaimTypes.Name, input.Email) };
+        var identity = new ClaimsIdentity(
+            claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity));
+
+        return Url.IsLocalUrl(returnUrl)
+            ? LocalRedirect(returnUrl)
+            : RedirectToAction("Index", "Todos");
+    }
+}`;
+
+const loginView = `@model LoginInputModel
+
+<h1>ログイン</h1>
+
+<form asp-action="Login" method="post">
+    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <label asp-for="Email"></label>
+    <input asp-for="Email" autocomplete="email" />
+    <span asp-validation-for="Email"></span>
+
+    <label asp-for="Password"></label>
+    <input asp-for="Password" autocomplete="current-password" />
+    <span asp-validation-for="Password"></span>
+
+    <button type="submit">ログイン</button>
+</form>`;
+
+const authorizeController = `using Microsoft.AspNetCore.Authorization;
+
+[Authorize]
+public class TodosController(ITodoService todoService) : Controller
+{
+    [HttpGet("todos")]
+    public async Task<IActionResult> Index()
+    {
+        var todos = await todoService.GetIncompleteAsync();
+        return View(todos);
+    }
+}`;
+
+const logoutAction = `[Authorize]
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Logout()
+{
+    await HttpContext.SignOutAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme);
+
+    return RedirectToAction(nameof(Login));
+}`;
+---
+
+<Layout
+  title="第9章 Cookie 認証とログイン | ASP.NET Lesson"
+  description="ASP.NET Core MVC の Cookie 認証、ログイン、Authorize 属性による画面保護、ログアウトを学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 09 <span>/ 10</span>
+        </p>
+        <h1>
+          Cookie 認証と
+          <br />
+          ログイン
+        </h1>
+        <p class="lead">
+          ログインした利用者だけが TODO を操作できる、サーバーサイド Web
+          アプリケーションの基本を作ります
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>認証と認可の役割の違い</li>
+            <li>Cookie 認証を DI コンテナーとミドルウェアへ登録する方法</li>
+            <li>ログイン時に Claim と認証 Cookie を発行する流れ</li>
+            <li>
+              <code>[Authorize]</code> で Controller を保護し、未認証時にログイン画面へ戻す方法
+            </li>
+            <li>Cookie を無効にするログアウト処理</li>
+          </ul>
+        </section>
+
+        <section id="basics">
+          <p class="section-label">AUTHENTICATION AND AUTHORIZATION</p>
+          <h2>認証と認可を分けて考える</h2>
+          <p>
+            認証は「誰であるかを確認すること」、認可は「その利用者にアクセスを許可するかを判断すること」です。ログインで認証し、
+            <code>[Authorize]</code> で認可する、と分けて考えると役割が整理しやすくなります
+          </p>
+
+          <figure class="auth-basics" aria-labelledby="auth-basics-caption">
+            <figcaption id="auth-basics-caption">認証と認可の関係</figcaption>
+            <div class="auth-basics__user">
+              <strong>利用者</strong>
+              <span>メールアドレスとパスワードを送信</span>
+            </div>
+            <div class="auth-basics__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="auth-basics__authentication">
+              <strong>認証</strong>
+              <span>本人を確認する</span>
+              <code>SignInAsync</code>
+            </div>
+            <div class="auth-basics__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="auth-basics__authorization">
+              <strong>認可</strong>
+              <span>TODO 画面を表示してよいか判断する</span>
+              <code>[Authorize]</code>
+            </div>
+          </figure>
+
+          <p>
+            認証に成功すると、サーバーは利用者を表す情報を含んだ認証チケットを保護して Cookie
+            として返します。以後の要求でブラウザーが Cookie を送るため、サーバーは{' '}
+            <code>HttpContext.User</code>{' '}
+            からログイン済みの利用者を取り出せます。パスワードそのものを Cookie
+            へ入れるわけではありません
+          </p>
+        </section>
+
+        <section id="registration">
+          <p class="section-label">COOKIE AUTHENTICATION</p>
+          <h2>Cookie 認証を登録する</h2>
+          <p>
+            まず <code>Program.cs</code> で Cookie 認証のサービスを登録します。
+            <code>LoginPath</code>{' '}
+            は、未認証の利用者が保護された画面を要求したときに移動するログイン画面の URL です
+          </p>
+
+          <div class="code-block">
+            <Code code={authenticationRegistration} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            次に、第8章で確認したミドルウェアの順序に <code>UseAuthentication</code> と{' '}
+            <code>UseAuthorization</code>{' '}
+            を置きます。認証を先に実行しなければ、認可は誰が要求したかを判断できません
+          </p>
+
+          <div class="code-block">
+            <Code code={middlewareOrder} lang="csharp" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>認証方式を表すスキーム</h3>
+            <p>
+              <code>CookieAuthenticationDefaults.AuthenticationScheme</code> は Cookie
+              認証方式の名前です。この講座では1種類だけを使うため、ログインとログアウトの両方で同じ既定スキームを指定します
+            </p>
+          </aside>
+        </section>
+
+        <section id="login">
+          <p class="section-label">SIGN IN</p>
+          <h2>ログインして Cookie を発行する</h2>
+          <p>
+            ログインフォームの入力値には、これまでと同じく入力モデルを使います。パスワードは
+            ViewModel として受け取り、認証に成功した後は保持しません
+          </p>
+
+          <div class="code-block">
+            <Code code={loginInput} lang="csharp" theme="github-dark" />
+          </div>
+
+          <figure class="sign-in-flow" aria-labelledby="sign-in-flow-caption">
+            <figcaption id="sign-in-flow-caption">
+              未認証の要求からログイン後の再表示まで
+            </figcaption>
+            <div class="sign-in-flow__request">
+              <strong>ブラウザー</strong>
+              <span>
+                <code>GET /todos</code>
+              </span>
+            </div>
+            <div class="sign-in-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="sign-in-flow__protected">
+              <strong>
+                <code>[Authorize]</code>
+              </strong>
+              <span>未認証を検出する</span>
+            </div>
+            <div class="sign-in-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="sign-in-flow__login">
+              <strong>ログイン画面</strong>
+              <span>
+                <code>/Account/Login?returnUrl=/todos</code>
+              </span>
+            </div>
+            <div class="sign-in-flow__down" aria-hidden="true">
+              ↓
+            </div>
+            <div class="sign-in-flow__submit">
+              <strong>POST /Account/Login</strong>
+              <span>
+                入力を照合して <code>SignInAsync</code>
+              </span>
+            </div>
+            <div class="sign-in-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="sign-in-flow__cookie">
+              <strong>Set-Cookie</strong>
+              <span>認証 Cookie を返す</span>
+            </div>
+            <div class="sign-in-flow__arrow" aria-hidden="true">
+              →
+            </div>
+            <div class="sign-in-flow__complete">
+              <strong>GET /todos</strong>
+              <span>ログイン済みで一覧を表示</span>
+            </div>
+          </figure>
+
+          <h3 class="subsection-heading">入力を照合して Claim を作る</h3>
+          <p>
+            次の例は Cookie
+            認証の流れに集中するため、固定の学習用アカウントを使います。実際のアプリケーションでは、ユーザーをデータベースへ保存し、パスワードハッシュを検証します。パスワードをコードへ直接書く実装は本番で使えません
+          </p>
+
+          <div class="code-block">
+            <Code code={loginAction} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>Claim</code>{' '}
+            は、ログイン済みの利用者についてアプリケーションが扱う情報です。この例では名前としてメールアドレスを1つだけ持たせています。
+            <code>ClaimsPrincipal</code> を <code>SignInAsync</code> へ渡すと、Cookie
+            認証ハンドラーが認証 Cookie を応答へ追加します
+          </p>
+
+          <h3 class="subsection-heading">ログインフォームを作る</h3>
+          <div class="code-block">
+            <Code code={loginView} lang="html" theme="github-dark" />
+          </div>
+
+          <aside class="note">
+            <h3>returnUrl は必ず検証する</h3>
+            <p>
+              ログイン前に表示しようとした URL は <code>returnUrl</code> として渡されます。
+              <code>Url.IsLocalUrl</code> でアプリケーション内の URL
+              だけを許可し、外部サイトへ勝手に移動させるオープンリダイレクトを防ぎます
+            </p>
+          </aside>
+        </section>
+
+        <section id="authorize">
+          <p class="section-label">AUTHORIZATION</p>
+          <h2>ログインが必要な画面を保護する</h2>
+          <p>
+            <code>[Authorize]</code> を Controller に付けると、その Controller のすべての Action
+            にログインを要求できます。TODO
+            一覧、作成、編集、削除をまとめて保護したい場合に適しています
+          </p>
+
+          <div class="code-block">
+            <Code code={authorizeController} lang="csharp" theme="github-dark" />
+          </div>
+
+          <p>
+            ログイン画面そのものは未認証の利用者が開けなければならないため、
+            <code>AccountController</code> には <code>[AllowAnonymous]</code>{' '}
+            を付けます。未認証の利用者が <code>/todos</code> を開くと、Cookie 認証が{' '}
+            <code>LoginPath</code> へリダイレクトします
+          </p>
+
+          <div class="authorization-result" aria-label="認可の結果">
+            <div>
+              <strong>ログイン済み</strong>
+              <code>GET /todos</code>
+              <span>TodosController の Action を実行</span>
+            </div>
+            <div>
+              <strong>未認証</strong>
+              <code>GET /todos</code>
+              <span>
+                <code>/Account/Login</code> へリダイレクト
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section id="logout">
+          <p class="section-label">SIGN OUT</p>
+          <h2>ログアウトする</h2>
+          <p>
+            ログアウトでは <code>SignOutAsync</code> を呼び出します。これにより Cookie
+            認証ハンドラーが、ブラウザーの認証 Cookie
+            を削除する応答を返します。状態を変える操作なので、ログアウトも POST
+            フォームから送信します
+          </p>
+
+          <div class="code-block">
+            <Code code={logoutAction} lang="csharp" theme="github-dark" />
+          </div>
+
+          <div class="logout-example" aria-label="ログアウトフォームの例">
+            <div>
+              <strong>_Layout.cshtml</strong>
+              <code>&lt;form asp-controller="Account" asp-action="Logout" method="post"&gt;</code>
+            </div>
+            <div>
+              <strong>ログイン済みのときだけ表示</strong>
+              <code>@if (User.Identity?.IsAuthenticated == true)</code>
+            </div>
+          </div>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では、例外処理、ログ、テスト、公開前の確認事項を整理し、学習用アプリケーションを仕上げます
+          </p>
+          <span>CHAPTER 10 — エラー処理、テスト、デプロイ</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core Identity を使用しない Cookie 認証
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/security/authorization/simple?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core での単純な承認
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/security/authentication/api-endpoint-auth?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core での API エンドポイント認証の動作
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .auth-basics,
+  .sign-in-flow,
+  .authorization-result,
+  .logout-example {
+    display: grid;
+    gap: 14px;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .auth-basics {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .auth-basics figcaption,
+  .sign-in-flow figcaption {
+    grid-column: 1 / -1;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .auth-basics > div:not(.auth-basics__arrow) {
+    display: grid;
+    gap: 9px;
+    min-height: 132px;
+    place-content: center;
+    padding: 16px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .auth-basics__user {
+    background: #fff8f8;
+  }
+
+  .auth-basics__authentication {
+    background: #fff1f2;
+  }
+
+  .auth-basics__authorization {
+    background: #ffe4e6;
+  }
+
+  .auth-basics strong {
+    font-size: 0.94rem;
+  }
+
+  .auth-basics span {
+    color: #70565e;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .auth-basics__arrow,
+  .sign-in-flow__arrow,
+  .sign-in-flow__down {
+    color: #e11d48;
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+
+  .sign-in-flow {
+    grid-template-columns: minmax(120px, 0.8fr) auto minmax(120px, 0.8fr) auto minmax(170px, 1.1fr);
+    align-items: center;
+  }
+
+  .sign-in-flow > div:not(.sign-in-flow__arrow, .sign-in-flow__down) {
+    display: grid;
+    gap: 8px;
+    min-height: 112px;
+    place-content: center;
+    padding: 14px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .sign-in-flow__request,
+  .sign-in-flow__protected {
+    background: #fff8f8;
+  }
+
+  .sign-in-flow__login,
+  .sign-in-flow__submit {
+    background: #fff1f2;
+  }
+
+  .sign-in-flow__cookie,
+  .sign-in-flow__complete {
+    background: #ffe4e6;
+  }
+
+  .sign-in-flow__down {
+    grid-column: 3;
+    justify-self: center;
+  }
+
+  .sign-in-flow__submit {
+    grid-column: 3;
+  }
+
+  .sign-in-flow__cookie {
+    grid-column: 4 / 5;
+  }
+
+  .sign-in-flow__complete {
+    grid-column: 5;
+  }
+
+  .sign-in-flow span {
+    color: #70565e;
+    font-size: 0.74rem;
+    line-height: 1.55;
+  }
+
+  .authorization-result {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .authorization-result > div,
+  .logout-example > div {
+    display: grid;
+    gap: 9px;
+    padding: 18px;
+    border: 1px solid #fecdd3;
+  }
+
+  .authorization-result > div:first-child {
+    background: #fff1f2;
+  }
+
+  .authorization-result > div:last-child {
+    background: #fff8f8;
+  }
+
+  .authorization-result strong,
+  .logout-example strong {
+    color: #881337;
+    font-size: 0.9rem;
+  }
+
+  .authorization-result span {
+    color: #70565e;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .logout-example {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .logout-example > div:first-child {
+    background: #fff8f8;
+  }
+
+  .logout-example > div:last-child {
+    background: #fff1f2;
+  }
+
+  .logout-example code {
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 800px) {
+    .auth-basics,
+    .sign-in-flow {
+      grid-template-columns: 1fr;
+    }
+
+    .auth-basics__arrow,
+    .sign-in-flow__arrow,
+    .sign-in-flow__down {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
+    .sign-in-flow__down,
+    .sign-in-flow__submit,
+    .sign-in-flow__cookie,
+    .sign-in-flow__complete {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .authorization-result,
+    .logout-example {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
