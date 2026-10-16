@@ -232,6 +232,34 @@ body {
   font-weight: 700;
 }
 
+.previous-lesson-link,
+.next-lesson-link {
+  display: inline-block;
+  margin: -28px 0 56px;
+  color: #9f1239;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.next-lesson-link {
+  float: right;
+}
+
+.previous-lesson-link {
+  float: left;
+}
+
+.previous-lesson-link:hover,
+.next-lesson-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.lesson-page article > .references {
+  clear: both;
+}
+
 .references {
   padding-top: 28px;
   border-top: 1px solid #f0d8dc;
