@@ -68,7 +68,7 @@ body {
   margin: 18px 0 22px;
   font-size: clamp(3.4rem, 8vw, 6.5rem);
   letter-spacing: -0.075em;
-  line-height: 0.94;
+  line-height: 1.06;
 }
 
 .lead {
@@ -262,6 +262,78 @@ body {
   font-size: 0.88em;
 }
 
+.lesson-page article a:not(.back-link) {
+  color: #9f1239;
+  text-underline-offset: 3px;
+}
+
+.lesson-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.lesson-card-grid > div {
+  padding: 24px;
+  border: 1px solid #f0d8dc;
+  background: #fff;
+}
+
+.lesson-card-grid h3,
+.lesson-card-grid strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #881337;
+  font-size: 1rem;
+}
+
+.lesson-card-grid p {
+  margin-bottom: 0;
+  color: #70565e;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.code-block {
+  overflow-x: auto;
+  margin: 28px 0;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 22px 24px;
+  border: 1px solid #500724;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86rem;
+  line-height: 1.8;
+}
+
+.code-block code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+.lesson-page kbd {
+  padding: 0.1em 0.4em;
+  border: 1px solid #f0d8dc;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #fff;
+  color: #881337;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82em;
+}
+
+.subsection-heading {
+  margin: 36px 0 16px;
+  color: #881337;
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+}
+
 @media (max-width: 850px) {
   .lesson-content {
     display: block;
@@ -280,5 +352,9 @@ body {
   .lesson-header,
   .lesson-content {
     padding-inline: 20px;
+  }
+
+  .lesson-card-grid {
+    grid-template-columns: 1fr;
   }
 }

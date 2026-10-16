@@ -1,0 +1,300 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+import { Code } from 'astro:components';
+
+const tableOfContents = [
+  ['prepare', '準備するもの'],
+  ['sdk', '.NET SDK を確認する'],
+  ['create-project', 'MVC プロジェクトを作る'],
+  ['run', '開発サーバーを起動する'],
+  ['logging', '最初のログを出力する'],
+];
+
+const sdkCommands = `dotnet --info
+dotnet --version`;
+
+const createProjectCommands = `dotnet new mvc -o TaskManager -au None
+cd TaskManager`;
+
+const runCommand = 'dotnet run';
+
+const loggingExample = `public IActionResult Index()
+{
+    _logger.LogInformation("ホーム画面を表示します");
+    _logger.LogWarning("これはログ出力を確認するための警告です");
+
+    return View();
+}`;
+
+const loggingConfiguration = `{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}`;
+---
+
+<Layout
+  title="第2章 開発環境を整える | ASP.NET Lesson"
+  description=".NET SDK とエディターを準備し、ASP.NET Core MVC プロジェクトを起動してログを確認します"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 02 <span>/ 10</span>
+        </p>
+        <h1>
+          開発環境を
+          <br />
+          整える
+        </h1>
+        <p class="lead">
+          .NET SDK とエディターを用意し、MVC プロジェクトを作成してブラウザーで動作を確認します
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>.NET SDK とエディターの役割</li>
+            <li>.NET CLI で MVC プロジェクトを作成する方法</li>
+            <li>開発サーバーを起動し、ブラウザーで確認する流れ</li>
+            <li>
+              <code>ILogger&lt;T&gt;</code> とログレベルの基本
+            </li>
+          </ul>
+        </section>
+
+        <section id="prepare">
+          <p class="section-label">PREPARE</p>
+          <h2>準備するもの</h2>
+          <p>
+            ASP.NET Core MVC
+            アプリケーションを作るには、アプリケーションを作成・ビルド・実行するための
+            <strong>.NET SDK</strong> と、C# を編集するためのエディターが必要です
+          </p>
+
+          <div class="lesson-card-grid">
+            <div>
+              <h3>.NET SDK</h3>
+              <p>
+                テンプレート、コンパイラー、<code>dotnet</code> コマンドをまとめて提供します
+              </p>
+            </div>
+            <div>
+              <h3>エディター</h3>
+              <p>
+                Visual Studio Code、Visual Studio、JetBrains Rider などから使いやすいものを選びます
+              </p>
+            </div>
+          </div>
+
+          <aside class="note">
+            <h3>この講座での前提</h3>
+            <p>
+              以降の手順はターミナルで <code>dotnet</code>{' '}
+              コマンドを実行します。エディターは何を選んでも構いませんが、C#
+              の補完とデバッグ機能を使えるように設定してください
+            </p>
+          </aside>
+        </section>
+
+        <section id="sdk">
+          <p class="section-label">SDK</p>
+          <h2>.NET SDK を確認する</h2>
+          <p>
+            <a href="https://dotnet.microsoft.com/download" target="_blank" rel="noreferrer">
+              .NET の公式ダウンロードページ
+            </a>
+            から、サポート中の SDK
+            をインストールします。インストール後、ターミナルで次のコマンドを実行してください
+          </p>
+
+          <div class="code-block">
+            <Code code={sdkCommands} lang="bash" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>dotnet --info</code> では SDK、ランタイム、OS などの詳細を、
+            <code>dotnet --version</code> では現在使われる SDK のバージョンを確認できます
+          </p>
+        </section>
+
+        <section id="create-project">
+          <p class="section-label">CREATE</p>
+          <h2>MVC プロジェクトを作る</h2>
+          <p>
+            作業用のディレクトリで、MVC テンプレートを使って <code>TaskManager</code>{' '}
+            プロジェクトを作成します。<code>-au None</code>{' '}
+            は、認証なしのテンプレートを選ぶ指定です。認証は第9章で追加します
+          </p>
+
+          <div class="code-block">
+            <Code code={createProjectCommands} lang="bash" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>dotnet new</code> は、テンプレートから新しいプロジェクトを作るコマンドです。
+            <code>mvc</code> は ASP.NET Core MVC のテンプレートを表し、<code>-o</code>{' '}
+            で出力先のディレクトリ名を指定します
+          </p>
+
+          <aside class="note">
+            <h3>テンプレートを探したいとき</h3>
+            <p>
+              <code>dotnet new list</code> を実行すると、SDK に入っているテンプレートを確認できます
+            </p>
+          </aside>
+        </section>
+
+        <section id="run">
+          <p class="section-label">RUN</p>
+          <h2>開発サーバーを起動する</h2>
+          <p>
+            プロジェクトのディレクトリで <code>dotnet run</code>{' '}
+            を実行します。初回は必要なパッケージの復元とビルドが行われ、その後に開発用の Web
+            サーバーが起動します
+          </p>
+
+          <div class="code-block">
+            <Code code={runCommand} lang="bash" theme="github-dark" />
+          </div>
+
+          <p>
+            出力に表示された <code>http://localhost:...</code> または{' '}
+            <code>https://localhost:...</code> をブラウザーで開きます。停止するときは、ターミナルで{' '}
+            <kbd>Ctrl</kbd> + <kbd>C</kbd> を押します
+          </p>
+        </section>
+
+        <section id="logging">
+          <p class="section-label">LOGGING</p>
+          <h2>最初のログを出力する</h2>
+          <p>
+            画面に見えないサーバー側の処理は、ログを残して確認します。MVC テンプレートが作成する{' '}
+            <code>Controllers/HomeController.cs</code> は、コンストラクターで{' '}
+            <code>ILogger&lt;HomeController&gt;</code> を受け取る実装になっています
+          </p>
+          <p>
+            これはテンプレートの <code>HomeController</code> に用意された例です。新しく作る
+            Controller では、必要に応じてコンストラクター引数に{' '}
+            <code>ILogger&lt;Controller名&gt;</code>{' '}
+            を書くと、依存性注入によってロガーを受け取れます
+          </p>
+          <p>
+            <code>Index</code>{' '}
+            アクションを次のように変更して、ブラウザーでトップページを開いてください
+          </p>
+
+          <div class="code-block">
+            <Code code={loggingExample} lang="csharp" theme="github-dark" />
+          </div>
+
+          <div class="lesson-card-grid" role="list">
+            <div role="listitem">
+              <strong>LogInformation</strong>
+              <p>アプリケーションがどのように進んだかを追うための情報です</p>
+            </div>
+            <div role="listitem">
+              <strong>LogDebug</strong>
+              <p>開発中の調査で使う詳細な情報です。通常は本番環境で出力しません</p>
+            </div>
+            <div role="listitem">
+              <strong>LogWarning</strong>
+              <p>想定外ではないものの、注意して確認したい状況を記録します</p>
+            </div>
+            <div role="listitem">
+              <strong>LogError</strong>
+              <p>現在の要求や操作が失敗したときに、例外情報とともに記録します</p>
+            </div>
+          </div>
+
+          <p>
+            実行中のターミナルにログが表示されます。この章の <code>LogWarning</code>{' '}
+            は出力を確かめるためのものです。通常の処理では、本当に確認が必要な状況だけに警告を使います
+          </p>
+
+          <h3 class="subsection-heading">appsettings.json の既定のログレベル</h3>
+          <p>
+            MVC テンプレートの <code>appsettings.json</code> は、最初から次の設定を持ちます。
+            <code>Default</code> はアプリケーション全体の最小ログレベルです
+          </p>
+
+          <div class="code-block">
+            <Code code={loggingConfiguration} lang="json" theme="github-dark" />
+          </div>
+
+          <p>
+            <code>Information</code> より詳細な <code>Debug</code>{' '}
+            は、この既定設定では出力されません。調査中だけ <code>appsettings.Development.json</code>{' '}
+            の <code>Default</code> を <code>Debug</code>{' '}
+            に変更すると、開発環境で表示できます。調査が終わったら <code>Information</code>{' '}
+            に戻します
+          </p>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では、作成したプロジェクトのフォルダー構成を確認し、MVC の各要素が担う役割を学びます
+          </p>
+          <span>CHAPTER 03 — ASP.NET Core MVC の基本構成</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/dotnet/core/tools/dotnet-new"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — dotnet new
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/dotnet/core/tools/dotnet-run"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — dotnet run
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/fundamentals/logging/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — .NET と ASP.NET Core でのログ記録
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
