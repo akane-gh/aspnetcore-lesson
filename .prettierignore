@@ -1,4 +1,5 @@
 dist
 .astro
+csharp
 node_modules
 bun.lock

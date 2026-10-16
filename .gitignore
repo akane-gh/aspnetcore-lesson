@@ -25,3 +25,12 @@ pnpm-debug.log*
 
 # documents
 /docs/
+
+# C# / .NET build outputs
+csharp/**/bin/
+csharp/**/obj/
+
+# SQLite runtime files
+csharp/**/*.db
+csharp/**/*.db-shm
+csharp/**/*.db-wal
