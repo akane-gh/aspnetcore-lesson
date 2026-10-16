@@ -1,0 +1,628 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/lesson.css';
+
+const tableOfContents = [
+  ['flow', 'フォーム送信の流れ'],
+  ['binding', 'モデルバインディング'],
+  ['tag-helpers', 'Tag Helper'],
+  ['validation', 'Data Annotations による検証'],
+  ['errors', '検証エラーを表示する'],
+];
+
+const inputModel = `using System.ComponentModel.DataAnnotations;
+
+namespace TaskManager.Models;
+
+public class CreateTaskInputModel
+{
+    [Required(ErrorMessage = "タスク名を入力してください")]
+    [StringLength(100, ErrorMessage = "タスク名は100文字以内で入力してください")]
+    [Display(Name = "タスク名")]
+    public string Title { get; set; } = "";
+
+    [StringLength(500, ErrorMessage = "説明は500文字以内で入力してください")]
+    [Display(Name = "説明")]
+    public string? Description { get; set; }
+}`;
+
+const createView = `@model CreateTaskInputModel
+
+@{
+    ViewData["Title"] = "タスクを追加";
+}
+
+<h1>タスクを追加</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div>
+        <label asp-for="Title"></label>
+        <input asp-for="Title" />
+        <span asp-validation-for="Title"></span>
+    </div>
+
+    <div>
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description"></textarea>
+        <span asp-validation-for="Description"></span>
+    </div>
+
+    <button type="submit">追加する</button>
+</form>`;
+
+const createAction = `[HttpPost("tasks")]
+[ValidateAntiForgeryToken]
+public IActionResult Create(CreateTaskInputModel input)
+{
+    if (!ModelState.IsValid)
+    {
+        // 入力値と検証エラーを保ったままフォームを再表示する
+        return View("New", input);
+    }
+
+    // 保存処理は第7章で追加する
+    return RedirectToAction(nameof(Index));
+}`;
+
+const generatedInput = `<!-- Razor の input 要素 -->
+<input asp-for="Title" />
+
+<!-- 生成される HTML の例 -->
+<input type="text"
+       id="Title"
+       name="Title"
+       value=""
+       data-val="true"
+       data-val-required="タスク名を入力してください" />`;
+---
+
+<Layout
+  title="第6章 フォームと入力値の検証 | ASP.NET Lesson"
+  description="ASP.NET Core MVC のフォーム、モデルバインディング、Tag Helper、Data Annotations による検証を学びます"
+>
+  <main class="lesson-page">
+    <header class="lesson-header">
+      <div class="lesson-header__inner">
+        <a class="back-link" href="/">
+          ← ASP.NET Lesson トップへ戻る
+        </a>
+        <p class="chapter-label">
+          CHAPTER 06 <span>/ 10</span>
+        </p>
+        <h1>
+          フォームと
+          <br />
+          入力値の検証
+        </h1>
+        <p class="lead">
+          タスク作成フォームを通して、入力値を受け取り、安全に確認する流れを学びます
+        </p>
+      </div>
+    </header>
+
+    <div class="lesson-content">
+      <aside class="lesson-nav" aria-label="この章の目次">
+        <p>この章の目次</p>
+        <ol>
+          {tableOfContents.map(([id, label]) => (
+            <li>
+              <a href={`#${id}`}>{label}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      <article>
+        <section class="overview" aria-labelledby="overview-title">
+          <p class="section-label">OVERVIEW</p>
+          <h2 id="overview-title">この章で学ぶこと</h2>
+          <ul>
+            <li>フォームから POST 要求を送る流れ</li>
+            <li>モデルバインディングで入力を C# のオブジェクトへ変換する仕組み</li>
+            <li>Tag Helper でフォーム要素を生成する方法</li>
+            <li>
+              Data Annotations と <code>ModelState.IsValid</code> による検証
+            </li>
+          </ul>
+        </section>
+
+        <section id="flow">
+          <p class="section-label">FORM FLOW</p>
+          <h2>フォーム送信の流れ</h2>
+          <p>
+            タスクを追加する画面では、利用者がフォームへ入力して送信します。ブラウザーは入力値を
+            POST し、サーバー側ではモデルバインディングと検証を経て Action が処理を決めます
+          </p>
+
+          <figure class="form-flow" aria-labelledby="form-flow-caption">
+            <figcaption id="form-flow-caption">タスク作成フォームの送信と応答</figcaption>
+            <div class="form-flow__browser">
+              <strong>ブラウザー</strong>
+              <span>タスク名を入力</span>
+              <b>POST /tasks</b>
+            </div>
+            <div class="form-flow__arrow form-flow__arrow--request" aria-hidden="true">
+              →
+            </div>
+            <div class="form-flow__server">
+              <span class="form-flow__server-label">WEB SERVER</span>
+              <div>モデルバインディング</div>
+              <div>Data Annotations による検証</div>
+              <div>「Create」Action</div>
+            </div>
+            <div class="form-flow__outcomes">
+              <div>
+                <strong>有効</strong>
+                <span>302 リダイレクト</span>
+                <b>GET /tasks</b>
+              </div>
+              <div>
+                <strong>無効</strong>
+                <span>入力値とエラーを保つ</span>
+                <b>フォームを再表示</b>
+              </div>
+            </div>
+          </figure>
+
+          <aside class="note">
+            <h3>POST では状態を変える</h3>
+            <p>
+              第4章で扱ったように、作成や更新など状態を変える操作には POST を使います。成功時は GET
+              の一覧画面へリダイレクトし、検証に失敗したときだけ同じフォームを再表示します
+            </p>
+          </aside>
+        </section>
+
+        <section id="binding">
+          <p class="section-label">MODEL BINDING</p>
+          <h2>モデルバインディング</h2>
+          <p>
+            モデルバインディングは、フォーム、URL、クエリ文字列などの要求データを Action
+            の引数へ自動的に入れる仕組みです。フォームの <code>name</code> と C#
+            のプロパティ名が対応すると、文字列の入力値が適切な .NET 型へ変換されます
+          </p>
+
+          <div class="binding-map" role="list" aria-label="フォームの値と入力モデルの対応">
+            <div class="binding-map__header">
+              <span>フォーム要素</span>
+              <span>入力モデルのプロパティ</span>
+            </div>
+            <div role="listitem">
+              <code>&lt;input type="text" name="Title" /&gt;</code>
+              <code>CreateTaskInputModel.Title</code>
+            </div>
+            <div role="listitem">
+              <code>&lt;textarea name="Description"&gt;&lt;/textarea&gt;</code>
+              <code>CreateTaskInputModel.Description</code>
+            </div>
+          </div>
+
+          <p>
+            たとえば <code>&lt;input type="text" name="Title" /&gt;</code> に入力された値は、
+            <code>CreateTaskInputModel</code> の <code>Title</code>{' '}
+            プロパティへ入ります。数値や日付への変換に失敗した場合も、エラーは{' '}
+            <code>ModelState</code> に記録されます
+          </p>
+
+          <aside class="note">
+            <h3>入力専用の ViewModel を使う</h3>
+            <p>
+              作成フォームには、表示用の ViewModel とは別に、受け取ってよい項目だけを持つ{' '}
+              <code>CreateTaskInputModel</code> を用意します。Entity
+              を直接受け取らないことで、意図しない項目まで更新するリスクを減らせます
+            </p>
+          </aside>
+        </section>
+
+        <section id="tag-helpers">
+          <p class="section-label">TAG HELPERS</p>
+          <h2>Tag Helper を使う</h2>
+          <p>
+            Tag Helper は、Razor の HTML 要素に <code>asp-</code>{' '}
+            で始まる属性を付け、モデルやルーティングに合わせた HTML
+            を生成する仕組みです。フォームの記述を ViewModel と同期しやすくします
+          </p>
+
+          <div class="code-block">
+            <Code code={createView} lang="html" theme="github-dark" />
+          </div>
+
+          <div class="tag-helper-grid" role="list">
+            <div role="listitem">
+              <code>asp-action="Create"</code>
+              <p>フォームの送信先を Create Action として生成します</p>
+            </div>
+            <div role="listitem">
+              <code>asp-for="Title"</code>
+              <p>モデルの Title に対応する label や input を生成し、name も Title になります</p>
+            </div>
+            <div role="listitem">
+              <code>asp-validation-for="Title"</code>
+              <p>Title の検証エラーを表示する位置を作ります</p>
+            </div>
+          </div>
+
+          <p>
+            <code>asp-for="Title"</code> は、<code>id</code>、<code>name</code>
+            、検証用の属性を生成します。生成された <code>name="Title"</code>{' '}
+            により、送信時の値はモデルバインディングで <code>Title</code>{' '}
+            プロパティへ対応付けられます。手書きの HTML
+            より、プロパティ名の変更に追従しやすい点が利点です
+          </p>
+
+          <div class="code-block">
+            <Code code={generatedInput} lang="html" theme="github-dark" />
+          </div>
+        </section>
+
+        <section id="validation">
+          <p class="section-label">VALIDATION</p>
+          <h2>Data Annotations による検証</h2>
+          <p>
+            入力モデルのプロパティに属性を付けると、入力規則を宣言できます。この例では、タスク名を必須かつ100文字以内、説明を500文字以内にしています
+          </p>
+
+          <div class="code-block">
+            <Code code={inputModel} lang="csharp" theme="github-dark" />
+          </div>
+
+          <dl class="validation-rules">
+            <div>
+              <dt>
+                <code>[Required]</code>
+              </dt>
+              <dd>値が入力されていることを確認します</dd>
+            </div>
+            <div>
+              <dt>
+                <code>[StringLength]</code>
+              </dt>
+              <dd>文字数の上限や下限を確認します</dd>
+            </div>
+            <div>
+              <dt>
+                <code>[Display]</code>
+              </dt>
+              <dd>label などに表示する名前を指定します</dd>
+            </div>
+          </dl>
+
+          <aside class="note">
+            <h3>ブラウザー側だけに頼らない</h3>
+            <p>
+              Tag Helper はブラウザー側の検証に必要な属性も出力しますが、JavaScript
+              が無効な場合もあります。サーバー側の <code>ModelState.IsValid</code>{' '}
+              を必ず確認してから処理を続けます
+            </p>
+          </aside>
+        </section>
+
+        <section id="errors">
+          <p class="section-label">ERROR HANDLING</p>
+          <h2>検証エラーを表示する</h2>
+          <p>
+            モデルバインディングと検証が終わると、結果は <code>ModelState</code> に入ります。Action
+            では <code>ModelState.IsValid</code> を確認し、エラーがあれば入力モデルを渡して同じ View
+            を返します
+          </p>
+
+          <div class="code-block">
+            <Code code={createAction} lang="csharp" theme="github-dark" />
+          </div>
+
+          <div class="error-display" aria-label="検証エラーの表示例">
+            <div class="error-display__form">
+              <label>タスク名</label>
+              <input aria-invalid="true" value="" />
+              <span>タスク名を入力してください</span>
+              <button type="button">追加する</button>
+            </div>
+            <div class="error-display__caption">
+              <strong>asp-validation-for="Title"</strong>
+              <p>対応するプロパティのエラーを入力欄の近くへ表示します</p>
+            </div>
+          </div>
+
+          <p>
+            <code>return View("New", input)</code>{' '}
+            とすると、利用者が入力した内容と検証エラーを保ったままフォームを再表示できます。成功した場合だけ{' '}
+            <code>RedirectToAction</code> で一覧へ移動します
+          </p>
+        </section>
+
+        <footer class="lesson-footer">
+          <p>
+            次章では Entity Framework Core
+            とデータベースを導入し、入力したタスクを保存、編集、削除できるようにします
+          </p>
+          <span>CHAPTER 07 — データベースと Entity Framework Core</span>
+        </footer>
+
+        <section class="references" aria-labelledby="references-title">
+          <h2 id="references-title">参考資料</h2>
+          <ul>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/models/model-binding?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core でのモデル バインド
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/views/working-with-forms?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core のフォームのタグ ヘルパー
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://learn.microsoft.com/ja-jp/aspnet/core/mvc/models/validation?view=aspnetcore-10.0"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Microsoft Learn — ASP.NET Core MVC でのモデルの検証
+              </a>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .form-flow {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) auto minmax(200px, 1.1fr);
+    gap: 18px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .form-flow figcaption {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+    color: #70565e;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .form-flow__browser,
+  .form-flow__server,
+  .form-flow__outcomes > div {
+    display: grid;
+    gap: 9px;
+    padding: 18px;
+    border: 1px solid #fecdd3;
+    color: #881337;
+    text-align: center;
+  }
+
+  .form-flow__browser {
+    min-height: 172px;
+    place-content: center;
+    background: #fff8f8;
+  }
+
+  .form-flow__browser span,
+  .form-flow__browser b,
+  .form-flow__outcomes span,
+  .form-flow__outcomes b {
+    font-size: 0.76rem;
+  }
+
+  .form-flow__arrow {
+    color: #e11d48;
+    font-size: 1.45rem;
+    font-weight: 800;
+  }
+
+  .form-flow__server {
+    position: relative;
+    grid-template-columns: 1fr;
+    padding-top: 42px;
+    background: #fff1f2;
+  }
+
+  .form-flow__server-label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    color: #9f1239;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+  }
+
+  .form-flow__server div {
+    padding: 8px;
+    border: 1px solid #fda4af;
+    background: #fff;
+    font-size: 0.78rem;
+  }
+
+  .form-flow__outcomes {
+    grid-column: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .form-flow__outcomes > div:first-child {
+    background: #fff8f8;
+  }
+
+  .form-flow__outcomes > div:last-child {
+    background: #fff1f2;
+  }
+
+  .binding-map {
+    display: grid;
+    margin: 30px 0;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .binding-map > div {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.55fr) 1fr;
+    gap: 18px;
+    padding: 15px 18px;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .binding-map > div:last-child {
+    border-bottom: 0;
+  }
+
+  .binding-map__header {
+    background: #fff1f2;
+    color: #881337;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .tag-helper-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 28px 0;
+  }
+
+  .tag-helper-grid > div {
+    padding: 20px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .tag-helper-grid p {
+    margin: 12px 0 0;
+    color: #70565e;
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+
+  .validation-rules {
+    display: grid;
+    margin: 28px 0;
+    border-top: 1px solid #f0d8dc;
+  }
+
+  .validation-rules div {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.4fr) 1fr;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0d8dc;
+  }
+
+  .validation-rules dt {
+    color: #881337;
+    font-weight: 800;
+  }
+
+  .validation-rules dd {
+    margin: 0;
+    color: #70565e;
+    line-height: 1.7;
+  }
+
+  .error-display {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr);
+    gap: 24px;
+    align-items: center;
+    margin: 32px 0;
+    padding: 28px;
+    border: 1px solid #f0d8dc;
+    background: #fff;
+  }
+
+  .error-display__form {
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid #fecdd3;
+    background: #fff8f8;
+  }
+
+  .error-display__form label {
+    color: #881337;
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  .error-display__form input {
+    height: 36px;
+    border: 1px solid #e11d48;
+    background: #fff;
+  }
+
+  .error-display__form span {
+    color: #be123c;
+    font-size: 0.78rem;
+  }
+
+  .error-display__form button {
+    width: fit-content;
+    margin-top: 6px;
+    padding: 8px 12px;
+    border: 0;
+    background: #be123c;
+    color: #fff;
+    font: inherit;
+    font-size: 0.82rem;
+  }
+
+  .error-display__caption strong {
+    color: #881337;
+    font-size: 0.86rem;
+  }
+
+  .error-display__caption p {
+    margin: 10px 0 0;
+    color: #70565e;
+    font-size: 0.86rem;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 760px) {
+    .form-flow,
+    .form-flow__outcomes,
+    .tag-helper-grid,
+    .error-display {
+      grid-template-columns: 1fr;
+    }
+
+    .form-flow__outcomes {
+      grid-column: auto;
+    }
+
+    .form-flow__arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
+    .binding-map > div,
+    .validation-rules div {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .binding-map__header {
+      display: none !important;
+    }
+  }
+</style>
