@@ -53,7 +53,7 @@ const createView = `@model CreateTodoInputModel
     <button type="submit">追加する</button>
 </form>`;
 
-const createAction = `[HttpPost("todos")]
+const createAction = `[HttpPost("")]
 [ValidateAntiForgeryToken]
 public IActionResult Create(CreateTodoInputModel input)
 {

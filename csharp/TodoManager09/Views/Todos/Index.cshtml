@@ -1,0 +1,10 @@
+@{
+    ViewData["Title"] = "TODO 一覧";
+}
+
+<h1>TODO 一覧</h1>
+<p>ログイン済み: @User.Identity?.Name</p>
+
+<form asp-controller="Account" asp-action="Logout" method="post">
+    <button type="submit">ログアウト</button>
+</form>

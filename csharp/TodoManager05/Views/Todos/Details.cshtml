@@ -1,0 +1,9 @@
+@model TodoManager05.Models.TodoListItemViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<h1>@Model.Title</h1>
+<p>状態: @(Model.IsCompleted ? "完了" : "未完了")</p>
+<a asp-action="Index">一覧へ戻る</a>

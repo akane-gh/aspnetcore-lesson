@@ -89,8 +89,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// 第9章で認証を追加する場所
-app.UseAuthentication();
+// 第9章で、この位置に UseAuthentication を追加する
 app.UseAuthorization();
 
 app.MapControllerRoute(
@@ -389,7 +388,7 @@ app.MapControllerRoute(
 
           <p>
             静的ファイルの要求は <code>UseStaticFiles</code> が処理して、その後の Controller
-            まで進まない場合があります。一方、<code>UseAuthentication</code> と{' '}
+            まで進まない場合があります。次章で追加する <code>UseAuthentication</code> と{' '}
             <code>UseAuthorization</code>{' '}
             は順序が重要で、認証を先に実行してから認可を判断します。Cookie
             認証は次章でこの位置へ追加します

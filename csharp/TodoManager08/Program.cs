@@ -1,7 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using TodoManager08.Data;
+using TodoManager08.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<ITodoService, TodoService>();
 
 var app = builder.Build();
 
@@ -18,12 +25,11 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.UseStaticFiles();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Todos}/{action=Index}/{id?}");
 
 
 app.Run();

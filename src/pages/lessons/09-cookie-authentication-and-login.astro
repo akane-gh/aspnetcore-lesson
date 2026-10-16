@@ -55,9 +55,9 @@ const loginAction = `using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
-[AllowAnonymous]
 public class AccountController : Controller
 {
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl)
     {
@@ -65,6 +65,7 @@ public class AccountController : Controller
         return View();
     }
 
+    [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginInputModel input, string? returnUrl)
@@ -342,6 +343,13 @@ public async Task<IActionResult> Logout()
           </div>
 
           <p>
+            ログイン画面は未認証の利用者も開ける必要があるため、2つの <code>Login</code> Action に{' '}
+            <code>[AllowAnonymous]</code> を付けます。<code>AccountController</code>{' '}
+            全体に付けると、後で追加する <code>Logout</code> Action
+            まで匿名アクセス可能になるため、必要な Action だけに付けます
+          </p>
+
+          <p>
             <code>Claim</code>{' '}
             は、ログイン済みの利用者についてアプリケーションが扱う情報です。この例では名前としてメールアドレスを1つだけ持たせています。
             <code>ClaimsPrincipal</code> を <code>SignInAsync</code> へ渡すと、Cookie
@@ -377,10 +385,8 @@ public async Task<IActionResult> Logout()
           </div>
 
           <p>
-            ログイン画面そのものは未認証の利用者が開けなければならないため、
-            <code>AccountController</code> には <code>[AllowAnonymous]</code>{' '}
-            を付けます。未認証の利用者が <code>/todos</code> を開くと、Cookie 認証が{' '}
-            <code>LoginPath</code> へリダイレクトします
+            未認証の利用者が <code>/todos</code> を開くと、Cookie 認証が <code>LoginPath</code>{' '}
+            へリダイレクトします
           </p>
 
           <div class="authorization-result" aria-label="認可の結果">

@@ -1,0 +1,10 @@
+@model TodoManager05.Models.TodoListItemViewModel
+
+<article class="todo-summary">
+    <h2>@Model.Title</h2>
+    @if (Model.IsCompleted)
+    {
+        <span>完了</span>
+    }
+    <a asp-action="Details" asp-route-id="@Model.Id">詳細を見る</a>
+</article>

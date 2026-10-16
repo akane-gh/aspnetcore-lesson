@@ -1,0 +1,12 @@
+@model TodoManager05.Models.TodosIndexViewModel
+
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<h1>@Model.PageTitle</h1>
+
+@foreach (var todo in Model.Todos)
+{
+    <partial name="_TodoSummary" model="todo" />
+}

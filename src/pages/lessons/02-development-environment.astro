@@ -19,12 +19,22 @@ cd TodoManager`;
 
 const runCommand = 'dotnet run';
 
-const loggingExample = `public IActionResult Index()
+const loggingExample = `public class HomeController : Controller
 {
-    _logger.LogInformation("ホーム画面を表示します");
-    _logger.LogWarning("これはログ出力を確認するための警告です");
+    private readonly ILogger<HomeController> _logger;
 
-    return View();
+    public HomeController(ILogger<HomeController> logger)
+    {
+        _logger = logger;
+    }
+
+    public IActionResult Index()
+    {
+        _logger.LogInformation("ホーム画面を表示します");
+        _logger.LogWarning("これはログ出力を確認するための警告です");
+
+        return View();
+    }
 }`;
 
 const loggingConfiguration = `{
@@ -194,18 +204,18 @@ const loggingConfiguration = `{
           <h2>最初のログを出力する</h2>
           <p>
             画面に見えないサーバー側の処理は、ログを残して確認します。MVC テンプレートが作成する{' '}
-            <code>Controllers/HomeController.cs</code> は、コンストラクターで{' '}
-            <code>ILogger&lt;HomeController&gt;</code> を受け取る実装になっています
+            <code>Controllers/HomeController.cs</code>{' '}
+            には、最初はロガーを受け取るコードは含まれません
           </p>
           <p>
-            これはテンプレートの <code>HomeController</code> に用意された例です。新しく作る
-            Controller では、必要に応じてコンストラクター引数に{' '}
-            <code>ILogger&lt;Controller名&gt;</code>{' '}
-            を書くと、依存性注入によってロガーを受け取れます
+            ASP.NET Core は既定で <code>ILogger&lt;T&gt;</code> を DI
+            コンテナーへ登録していますが、Controller で利用するには、コンストラクター引数に{' '}
+            <code>ILogger&lt;HomeController&gt;</code> を書いて受け取る必要があります。次のように{' '}
+            <code>HomeController</code> を変更してください
           </p>
           <p>
-            <code>Index</code>{' '}
-            アクションを次のように変更して、ブラウザーでトップページを開いてください
+            コンストラクターで受け取ったロガーをフィールドへ保存し、<code>Index</code>{' '}
+            アクションから使います。ブラウザーでトップページを開いてください
           </p>
 
           <div class="code-block">
@@ -214,20 +224,20 @@ const loggingConfiguration = `{
 
           <div class="lesson-card-grid" role="list">
             <div role="listitem">
-              <strong>LogInformation</strong>
-              <p>アプリケーションがどのように進んだかを追うための情報です</p>
-            </div>
-            <div role="listitem">
-              <strong>LogDebug</strong>
-              <p>開発中の調査で使う詳細な情報です。通常は本番環境で出力しません</p>
+              <strong>LogError</strong>
+              <p>現在の要求や操作が失敗したときに、例外情報とともに記録します</p>
             </div>
             <div role="listitem">
               <strong>LogWarning</strong>
               <p>想定外ではないものの、注意して確認したい状況を記録します</p>
             </div>
             <div role="listitem">
-              <strong>LogError</strong>
-              <p>現在の要求や操作が失敗したときに、例外情報とともに記録します</p>
+              <strong>LogInformation</strong>
+              <p>アプリケーションがどのように進んだかを追うための情報です</p>
+            </div>
+            <div role="listitem">
+              <strong>LogDebug</strong>
+              <p>開発中の調査で使う詳細な情報です。通常は本番環境で出力しません</p>
             </div>
           </div>
 

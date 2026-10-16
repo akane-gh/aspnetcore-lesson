@@ -35,20 +35,17 @@ public class TodosController : Controller
     }
 }`;
 
-const todoActions = `public class TodosController : Controller
+const todoActions = `[HttpGet("new")]
+public IActionResult New()
 {
-    [HttpGet("todos/new")]
-    public IActionResult New()
-    {
-        return View();
-    }
+    return View();
+}
 
-    [HttpPost("todos")]
-    public IActionResult Create()
-    {
-        // 入力値を保存する処理は第6章、第7章で追加します
-        return RedirectToAction(nameof(Index));
-    }
+[HttpPost("")]
+public IActionResult Create()
+{
+    // 入力値を保存する処理は第6章、第7章で追加します
+    return RedirectToAction(nameof(Index));
 }`;
 ---
 
@@ -320,6 +317,13 @@ const todoActions = `public class TodosController : Controller
           <div class="code-block">
             <Code code={todoActions} lang="csharp" theme="github-dark" />
           </div>
+
+          <p>
+            このコードは、先ほどの <code>TodosController</code> に Action
+            として追加します。Controller にある <code>[Route("todos")]</code> と組み合わせることで、
+            <code>New</code> は <code>GET /todos/new</code>、<code>Create</code> は{' '}
+            <code>POST /todos</code> を受け取ります
+          </p>
 
           <p>
             <code>RedirectToAction</code> は、処理のあとに別の Action へ誘導する応答を返します。POST

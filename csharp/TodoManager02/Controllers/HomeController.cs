@@ -6,8 +6,18 @@ namespace TodoManager02.Controllers;
 
 public class HomeController : Controller
 {
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(ILogger<HomeController> logger)
+    {
+        _logger = logger;
+    }
+
     public IActionResult Index()
     {
+        _logger.LogInformation("ホーム画面を表示します");
+        _logger.LogWarning("これはログ出力を確認するための警告です");
+
         return View();
     }
 

@@ -1,0 +1,25 @@
+@model TodoManager06.Models.CreateTodoInputModel
+
+@{
+    ViewData["Title"] = "TODO を追加";
+}
+
+<h1>TODO を追加</h1>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div>
+        <label asp-for="Title"></label>
+        <input asp-for="Title" />
+        <span asp-validation-for="Title"></span>
+    </div>
+
+    <div>
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description"></textarea>
+        <span asp-validation-for="Description"></span>
+    </div>
+
+    <button type="submit">追加する</button>
+</form>
